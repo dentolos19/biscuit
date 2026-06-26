@@ -1,3 +1,5 @@
+// ── Bottom Navigation Bar ──
+
 import { Link, useLocation } from "@tanstack/react-router";
 import { Wallet, Receipt, ScanLine, Split, Users } from "lucide-react";
 
@@ -5,7 +7,7 @@ import { cn } from "#/lib/utils";
 
 const tabs = [
   { name: "Wallet", href: "/", icon: Wallet },
-  { name: "Expenses", href: "/trips/tokyo-2024", icon: Receipt },
+  { name: "Expenses", href: "/trips/bangkok-2024/expenses", icon: Receipt },
   { name: "Scan", href: "/scan", icon: ScanLine, isSpecial: true },
   { name: "Split", href: "/split", icon: Split },
   { name: "Group", href: "/group", icon: Users },

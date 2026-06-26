@@ -1,16 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Bell,
-  Award,
-  UtensilsCrossed,
-  BellRing,
-  SmilePlus,
-  Wallet,
-  Receipt,
-  ScanLine,
-  Split,
-  Users,
-} from "lucide-react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Bell, Award, UtensilsCrossed, BellRing, SmilePlus } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";

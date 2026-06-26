@@ -1,22 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  X,
-  HelpCircle,
-  Zap,
-  Image,
-  Receipt,
-  Store,
-  Calendar,
-  Plus,
-  ArrowRight,
-  CheckCircle,
-  RefreshCw,
-} from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { X, HelpCircle, Zap, Image, Receipt, Store, Calendar, Plus, ArrowRight, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
-import { AppLayout } from "#/components/app-layout";
 import { Button } from "#/components/ui/button";
-import { Input } from "#/components/ui/input";
 
 export const Route = createFileRoute("/scan")({
   component: OCRReceiptScan,
@@ -32,6 +18,7 @@ const scannedItems = [
 ];
 
 export default function OCRReceiptScan() {
+  const navigate = useNavigate();
   const [merchant, setMerchant] = useState("After You Dessert Cafe");
   const [date, setDate] = useState("Oct 15, 2024");
   const [total, setTotal] = useState("66.40");
@@ -41,13 +28,11 @@ export default function OCRReceiptScan() {
     setItems(items.filter((_, i) => i !== index));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price, 0);
-
   return (
     <div className="bg-nets-surface mx-auto min-h-dvh max-w-lg">
       {/* Header */}
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-4 py-3 backdrop-blur-md">
-        <button className="rounded-full p-2">
+        <button onClick={() => navigate({ to: "/" })} className="rounded-full p-2">
           <X className="text-nets-on-surface h-5 w-5" />
         </button>
         <h1 className="text-nets-on-surface flex-1 text-center text-lg font-bold">Scan Receipt</h1>
@@ -202,9 +187,12 @@ export default function OCRReceiptScan() {
       {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
-          <Button className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold">
+          <Button
+            onClick={() => navigate({ to: "/trips/bangkok-2024/claim" })}
+            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
+          >
             Confirm & Continue
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <ArrowRight data-icon="inline-end" className="h-5 w-5" />
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowLeft, Settings, PlusCircle, RotateCcw, Flame, Trophy, Wallet, Receipt, Users } from "lucide-react";
+import { ArrowLeft, Settings, PlusCircle, RotateCcw, Flame, Trophy } from "lucide-react";
 import { useState } from "react";
 
 import { AppLayout } from "#/components/app-layout";

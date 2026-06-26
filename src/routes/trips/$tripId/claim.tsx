@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, MoreVertical, MousePointer, Lock } from "lucide-react";
 import { useState } from "react";
 
 import { AppLayout } from "#/components/app-layout";
-import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
+import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 
@@ -51,6 +51,8 @@ const items = [
 ];
 
 export default function ItemClaiming() {
+  const { tripId } = Route.useParams();
+  const navigate = useNavigate();
   const [selectedFriend, setSelectedFriend] = useState(0);
   const total = items.reduce((sum, item) => sum + item.price, 0);
 
@@ -184,8 +186,11 @@ export default function ItemClaiming() {
       {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
-          <Button className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold">
-            <Lock className="mr-2 h-5 w-5" />
+          <Button
+            onClick={() => navigate({ to: "/trips/$tripId/split", params: { tripId } })}
+            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
+          >
+            <Lock data-icon="inline-start" className="h-5 w-5" />
             Lock Split
           </Button>
         </div>

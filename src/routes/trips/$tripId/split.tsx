@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Info, Calculator, TrendingDown, TrendingUp, Send } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
@@ -20,6 +20,8 @@ const paying = [
 ];
 
 export default function SmartSplitSummary() {
+  const { tripId } = Route.useParams();
+  const navigate = useNavigate();
   return (
     <AppLayout>
       {/* Header */}
@@ -119,8 +121,11 @@ export default function SmartSplitSummary() {
       {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
-          <Button className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold">
-            <Send className="mr-2 h-5 w-5" />
+          <Button
+            onClick={() => navigate({ to: "/trips/$tripId/settle", params: { tripId } })}
+            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
+          >
+            <Send data-icon="inline-start" className="h-5 w-5" />
             Settle Now
           </Button>
         </div>

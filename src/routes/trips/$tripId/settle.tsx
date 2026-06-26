@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { CheckCircle, Star, ArrowDown, ArrowUp, PieChart, Wallet, Banknote, Share2 } from "lucide-react";
+// ── End Trip Settlement ──
+
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowLeft, CheckCircle, Star, ArrowDown, ArrowUp, PieChart, Wallet, Banknote, Share2 } from "lucide-react";
 
 import { Button } from "#/components/ui/button";
 
@@ -8,6 +10,9 @@ export const Route = createFileRoute("/trips/$tripId/settle")({
 });
 
 export default function EndTripSettlement() {
+  const { tripId } = Route.useParams();
+  const navigate = useNavigate();
+
   return (
     <div className="bg-nets-surface relative mx-auto min-h-dvh max-w-lg overflow-hidden">
       {/* Atmospheric Background */}
@@ -31,6 +36,14 @@ export default function EndTripSettlement() {
       </div>
 
       <div className="relative z-10 flex min-h-dvh flex-col items-center px-5 pt-16">
+        {/* Back Button */}
+        <button
+          onClick={() => navigate({ to: "/trips/$tripId", params: { tripId } })}
+          className="absolute top-4 left-4 rounded-full p-2"
+        >
+          <ArrowLeft className="text-nets-on-surface h-5 w-5" />
+        </button>
+
         {/* Success Icon */}
         <div className="animate-slide-up mb-6">
           <div className="relative">
@@ -52,7 +65,7 @@ export default function EndTripSettlement() {
         {/* Celebration Text */}
         <div className="animate-slide-up mb-8 text-center" style={{ animationDelay: "0.1s" }}>
           <h1 className="text-nets-on-surface text-4xl font-extrabold">Trip Settled!</h1>
-          <p className="text-nets-on-surface-variant mt-2 text-base">Bali 2024 is officially in the books</p>
+          <p className="text-nets-on-surface-variant mt-2 text-base">Bangkok Grad Trip is officially in the books</p>
         </div>
 
         {/* Finance Card */}
@@ -70,7 +83,7 @@ export default function EndTripSettlement() {
                 <ArrowUp className="text-nets-primary h-4 w-4" />
                 <span className="text-nets-on-surface-variant text-xs">Contributed</span>
               </div>
-              <p className="text-nets-on-surface text-lg font-bold">$2,500</p>
+              <p className="text-nets-on-surface text-lg font-bold">$850</p>
             </div>
             <div className="bg-nets-outline-variant h-10 w-px" />
             <div className="flex-1 text-center">
@@ -78,7 +91,7 @@ export default function EndTripSettlement() {
                 <ArrowDown className="text-nets-secondary h-4 w-4" />
                 <span className="text-nets-on-surface-variant text-xs">Spent</span>
               </div>
-              <p className="text-nets-on-surface text-lg font-bold">$2,350</p>
+              <p className="text-nets-on-surface text-lg font-bold">$700</p>
             </div>
           </div>
         </div>
@@ -92,26 +105,30 @@ export default function EndTripSettlement() {
             <PieChart className="text-nets-secondary h-5 w-5" />
             <span className="text-nets-on-surface-variant text-sm font-medium">Your Fair Share</span>
           </div>
-          <p className="text-nets-secondary text-3xl font-extrabold">$587.50</p>
+          <p className="text-nets-secondary text-3xl font-extrabold">$175.00</p>
         </div>
 
         {/* Actions */}
         <div className="animate-slide-up w-full space-y-3" style={{ animationDelay: "0.4s" }}>
           <Button className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold">
-            <Wallet className="mr-2 h-5 w-5" />
+            <Wallet data-icon="inline-start" className="h-5 w-5" />
             Settle with NETS
           </Button>
           <Button
             variant="outline"
             className="border-nets-secondary text-nets-secondary hover:bg-nets-secondary/5 h-12 w-full rounded-full text-base font-semibold"
           >
-            <Banknote className="mr-2 h-5 w-5" />
+            <Banknote data-icon="inline-start" className="h-5 w-5" />
             Refund Balance to Bank
           </Button>
-          <button className="text-nets-tertiary flex w-full items-center justify-center gap-2 py-3 text-sm font-semibold">
+          <Link
+            to="/trips/$tripId/report"
+            params={{ tripId }}
+            className="text-nets-tertiary flex w-full items-center justify-center gap-2 py-3 text-sm font-semibold"
+          >
             <Share2 className="h-4 w-4" />
             Export Trip Report
-          </button>
+          </Link>
         </div>
       </div>
     </div>

@@ -1,42 +1,86 @@
+// ── Home / Wallet Overview ──
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, Plane, MapPin, Calendar, Plus, Receipt, ScanLine, PieChart, Flame, ArrowRight } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
+import { useApp } from "#/components/demo-data-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Progress } from "#/components/ui/progress";
+import { goalProgress } from "#/lib/finance";
 
 export const Route = createFileRoute("/")({
   component: WalletOverview,
 });
 
-const members = [
-  { name: "Yu Xiang", amount: 250, isTop: true },
-  { name: "Miguel", amount: 250, isTop: false },
-  { name: "Zavic", amount: 200, isTop: false },
-  { name: "Sean", amount: 150, isTop: false },
-];
-
-const quickActions = [
-  { name: "Contribute", icon: Plus, variant: "primary" as const },
-  { name: "Add Expense", icon: Receipt, variant: "outline" as const },
-  { name: "Scan Receipt", icon: ScanLine, variant: "neutral" as const },
-  { name: "View Split", icon: PieChart, variant: "neutral" as const },
-];
-
 function WalletOverview() {
+  const { trips, members, notifications, contributions } = useApp();
+  const trip = trips.find((t) => t.status === "active") ?? trips[0];
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  if (!trip) {
+    return (
+      <AppLayout>
+        <div className="bg-nets-surface mx-auto min-h-dvh max-w-lg">
+          <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center justify-between px-5 py-3 backdrop-blur-md">
+            <Avatar className="h-9 w-9">
+              <AvatarFallback className="bg-nets-primary-container text-xs text-white">Y</AvatarFallback>
+            </Avatar>
+            <h1 className="text-nets-primary text-lg font-bold">NETS Biscuit</h1>
+            <Link to="/notifications" className="relative rounded-full p-2">
+              <Bell className="text-nets-on-surface h-5 w-5" />
+            </Link>
+          </div>
+          <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+            <div className="bg-nets-surface-container mb-4 flex h-16 w-16 items-center justify-center rounded-full">
+              <Plane className="text-nets-tertiary h-8 w-8" />
+            </div>
+            <h2 className="text-nets-on-surface mb-1 text-lg font-bold">No trips yet</h2>
+            <p className="text-nets-on-surface-variant mb-4 text-sm">
+              Create a group wallet to start saving with friends.
+            </p>
+            <Link
+              to="/wallet/create"
+              className="bg-nets-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
+            >
+              <Plus className="h-4 w-4" />
+              Create Trip
+            </Link>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const progress = goalProgress(trip.contribution, trip.goal);
+  const remaining = Math.max(trip.goal - trip.contribution, 0);
+  const tripContribs = contributions[trip.id] ?? {};
+  const tripMembers = trip.memberIds.map((id) => members.find((m) => m.id === id)).filter(Boolean);
+
+  const quickActions = [
+    { name: "Contribute", icon: Plus, variant: "primary" as const, href: "/group/contribution" },
+    { name: "Add Expense", icon: Receipt, variant: "outline" as const, href: `/trips/${trip.id}/expenses/new` },
+    { name: "Scan Receipt", icon: ScanLine, variant: "neutral" as const, href: "/scan" },
+    { name: "View Split", icon: PieChart, variant: "neutral" as const, href: `/trips/${trip.id}/split` },
+  ];
+
   return (
     <AppLayout>
       {/* Top App Bar */}
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center justify-between px-5 py-3 backdrop-blur-md">
-        <Avatar className="h-9 w-9">
-          <AvatarImage src="" alt="You" />
-          <AvatarFallback className="bg-nets-primary-container text-xs text-white">Y</AvatarFallback>
-        </Avatar>
-        <h1 className="text-nets-primary text-lg font-bold">NETS Biscuit</h1>
-        <button className="relative rounded-full p-2">
+        <Link to="/profile">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="" alt="You" />
+            <AvatarFallback className="bg-nets-primary-container text-xs text-white">Y</AvatarFallback>
+          </Avatar>
+        </Link>
+        <Link to="/" className="text-nets-primary text-lg font-bold">
+          NETS Biscuit
+        </Link>
+        <Link to="/notifications" className="relative rounded-full p-2">
           <Bell className="text-nets-on-surface h-5 w-5" />
-          <span className="bg-nets-primary absolute top-1 right-1 h-2 w-2 rounded-full" />
-        </button>
+          {unreadCount > 0 && <span className="bg-nets-primary absolute top-1 right-1 h-2 w-2 rounded-full" />}
+        </Link>
       </div>
 
       <div className="space-y-5 px-5 pb-4">
@@ -46,48 +90,46 @@ function WalletOverview() {
 
           <div className="bg-nets-secondary-fixed/50 mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1">
             <Plane className="text-nets-secondary h-3.5 w-3.5" />
-            <span className="text-nets-secondary text-xs font-semibold">Upcoming Trip</span>
+            <span className="text-nets-secondary text-xs font-semibold">
+              {trip.status === "active" ? "Active Trip" : trip.status === "upcoming" ? "Upcoming Trip" : "Completed"}
+            </span>
           </div>
 
-          <h2 className="text-nets-on-surface mb-2 text-2xl font-extrabold">Bangkok Grad Trip</h2>
+          <h2 className="text-nets-on-surface mb-2 text-2xl font-extrabold">{trip.name}</h2>
 
           <div className="text-nets-on-surface-variant mb-4 flex items-center gap-3 text-sm">
             <span className="flex items-center gap-1">
               <MapPin className="h-3.5 w-3.5" />
-              Bangkok, Thailand
+              {trip.destination}
             </span>
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              Dec 15-22
+              {trip.dates}
             </span>
           </div>
 
           {/* Destination thumbnail */}
           <div className="bg-nets-surface-container mb-4 h-32 overflow-hidden rounded-2xl">
-            <img
-              src="https://images.unsplash.com/photo-1508009603885-50cf7c579365?w=400&h=200&fit=crop"
-              alt="Grand Palace"
-              className="h-full w-full object-cover"
-            />
+            <img src={trip.imageUrl} alt={trip.destination} className="h-full w-full object-cover" />
           </div>
 
           {/* Savings Progress */}
           <div className="space-y-2">
             <div className="flex items-baseline justify-between">
-              <span className="text-nets-primary text-3xl font-extrabold">$850</span>
-              <span className="text-nets-on-surface-variant text-sm">/ $2,000</span>
+              <span className="text-nets-primary text-3xl font-extrabold">${trip.contribution.toLocaleString()}</span>
+              <span className="text-nets-on-surface-variant text-sm">/ ${trip.goal.toLocaleString()}</span>
             </div>
             <div className="relative">
-              <Progress value={42} className="h-2.5 rounded-full" />
+              <Progress value={progress} className="h-2.5 rounded-full" />
               <div className="absolute inset-0 h-2.5 overflow-hidden rounded-full">
                 <div className="animate-shimmer h-full w-full" />
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="bg-nets-primary-fixed text-nets-primary inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold">
-                42% Reached
+                {progress}% Reached
               </span>
-              <span className="text-nets-on-surface-variant text-xs">$1,150 to go</span>
+              <span className="text-nets-on-surface-variant text-xs">${remaining.toLocaleString()} to go</span>
             </div>
           </div>
         </div>
@@ -97,8 +139,9 @@ function WalletOverview() {
           {quickActions.map((action) => {
             const Icon = action.icon;
             return (
-              <button
+              <Link
                 key={action.name}
+                to={action.href}
                 className={`flex items-center gap-3 rounded-2xl p-4 transition-all active:scale-[0.97] ${
                   action.variant === "primary"
                     ? "bg-nets-primary shadow-ambient-soft text-white"
@@ -127,7 +170,7 @@ function WalletOverview() {
                   />
                 </div>
                 <span className="text-sm font-semibold">{action.name}</span>
-              </button>
+              </Link>
             );
           })}
         </div>
@@ -142,40 +185,43 @@ function WalletOverview() {
             </Link>
           </div>
           <div className="space-y-2">
-            {members.map((member) => (
-              <div
-                key={member.name}
-                className="shadow-ambient-soft flex items-center justify-between rounded-2xl bg-white px-4 py-3"
-              >
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
-                      {member.name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-nets-on-surface text-sm font-semibold">{member.name}</span>
-                      {member.isTop && <Flame className="text-nets-warning h-4 w-4" />}
+            {tripMembers.map((member) => {
+              const amount = tripContribs[member!.id] ?? 0;
+              return (
+                <div
+                  key={member!.id}
+                  className="shadow-ambient-soft flex items-center justify-between rounded-2xl bg-white px-4 py-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
+                        {member!.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-nets-on-surface text-sm font-semibold">{member!.name}</span>
+                        {member!.isCurrentUser && <Flame className="text-nets-warning h-4 w-4" />}
+                      </div>
+                      {member!.isCurrentUser && <span className="text-nets-secondary text-xs">You</span>}
                     </div>
-                    {member.isTop && <span className="text-nets-secondary text-xs">Top contributor</span>}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div
+                          key={i}
+                          className={`h-2 w-2 rounded-full ${
+                            i < Math.ceil(amount / 100) ? "bg-nets-secondary" : "bg-nets-surface-container-high"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-nets-on-surface text-sm font-bold">${amount}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-1">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={`h-2 w-2 rounded-full ${
-                          i < Math.ceil(member.amount / 100) ? "bg-nets-secondary" : "bg-nets-surface-container-high"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-nets-on-surface text-sm font-bold">${member.amount}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>

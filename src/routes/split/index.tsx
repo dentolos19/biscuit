@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Receipt, TrendingDown } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
