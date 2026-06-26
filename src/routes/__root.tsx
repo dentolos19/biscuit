@@ -1,5 +1,5 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import AppProvider from "#/components/app-provider";
@@ -17,10 +17,14 @@ export const Route = createRootRoute({
       },
       {
         name: "viewport",
-        content: "width=device-width, initial-scale=1",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
       },
       {
         title: "NETS Biscuit",
+      },
+      {
+        name: "theme-color",
+        content: "#b5000b",
       },
     ],
     links: [
@@ -34,13 +38,15 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  shellComponent: ({ children }) => (
+  component: () => (
     <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body className="antialiased">
-        <AppProvider>{children}</AppProvider>
+        <AppProvider>
+          <Outlet />
+        </AppProvider>
         <TanStackDevtools
           config={{
             position: "bottom-right",
