@@ -90,7 +90,7 @@ export default function TripExpenseFeed() {
         <Link to="/" className="rounded-full p-2">
           <ArrowLeft className="text-nets-on-surface h-5 w-5" />
         </Link>
-        <h1 className="text-nets-primary flex-1 text-center text-lg font-bold">NETS Group Wallet</h1>
+        <h1 className="text-nets-primary flex-1 text-center text-lg font-bold">NETS Biscuit</h1>
         <div className="flex gap-1">
           <button className="rounded-full p-2">
             <Search className="text-nets-on-surface h-5 w-5" />

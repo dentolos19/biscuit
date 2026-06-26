@@ -32,7 +32,7 @@ function WalletOverview() {
           <AvatarImage src="" alt="You" />
           <AvatarFallback className="bg-nets-primary-container text-xs text-white">Y</AvatarFallback>
         </Avatar>
-        <h1 className="text-nets-primary text-lg font-bold">NETS Group Wallet</h1>
+        <h1 className="text-nets-primary text-lg font-bold">NETS Biscuit</h1>
         <button className="relative rounded-full p-2">
           <Bell className="text-nets-on-surface h-5 w-5" />
           <span className="bg-nets-primary absolute top-1 right-1 h-2 w-2 rounded-full" />
