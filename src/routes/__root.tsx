@@ -20,13 +20,13 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "NETS",
+        title: "NETS Biscuit",
       },
     ],
     links: [
       {
         rel: "icon",
-        href: "/icon.png",
+        href: "/icon.jpeg",
       },
       {
         rel: "stylesheet",
