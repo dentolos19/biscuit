@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import { useApp } from "#/components/demo-data-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
@@ -35,13 +36,14 @@ const purposeOptions = [
 ];
 
 const friends = [
-  { name: "Yu Xiang", avatar: "" },
-  { name: "Miguel", avatar: "" },
-  { name: "Zavic", avatar: "" },
+  { id: "yu-xiang", name: "Yu Xiang", avatar: "" },
+  { id: "miguel", name: "Miguel", avatar: "" },
+  { id: "zavic", name: "Zavic", avatar: "" },
 ];
 
-export default function CreateGroupWallet() {
+function CreateGroupWallet() {
   const navigate = useNavigate();
+  const { createTrip } = useApp();
   const [tripName, setTripName] = useState("");
   const [destination, setDestination] = useState("");
   const [dates, setDates] = useState("");
@@ -49,10 +51,30 @@ export default function CreateGroupWallet() {
   const [showDestinations, setShowDestinations] = useState(false);
   const [splitType, setSplitType] = useState<"equal" | "flexible" | "custom">("equal");
   const [purposes, setPurposes] = useState(purposeOptions.map((p) => p.active));
+  const [selectedFriends, setSelectedFriends] = useState(["yu-xiang", "miguel", "zavic"]);
+  const [error, setError] = useState("");
 
   const formatGoal = (value: string) => {
     const num = value.replace(/[^0-9]/g, "");
     return num.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  };
+
+  const handleCreate = () => {
+    const amount = Number(goal.replace(/,/g, ""));
+    if (!tripName.trim() || !destination || !dates.trim() || !Number.isFinite(amount) || amount <= 0) {
+      setError("Add a trip name, destination, dates, and savings goal.");
+      return;
+    }
+    const trip = createTrip({
+      name: tripName.trim(),
+      destination,
+      dates: dates.trim(),
+      goal: amount,
+      purposes: purposeOptions.filter((_, index) => purposes[index]).map((purpose) => purpose.name),
+      splitType,
+      memberIds: selectedFriends,
+    });
+    navigate({ to: "/trips/$tripId", params: { tripId: trip.id } });
   };
 
   return (
@@ -149,17 +171,31 @@ export default function CreateGroupWallet() {
             <button className="border-nets-outline-variant text-nets-tertiary flex h-16 w-16 flex-shrink-0 snap-start items-center justify-center rounded-full border-2 border-dashed">
               <Plus className="h-5 w-5" />
             </button>
-            {friends.map((friend) => (
-              <div key={friend.name} className="flex flex-shrink-0 snap-start flex-col items-center gap-1">
-                <Avatar className="h-14 w-14">
-                  <AvatarImage src={friend.avatar} />
-                  <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
-                    {friend.name[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-nets-on-surface-variant text-[10px] font-medium">{friend.name}</span>
-              </div>
-            ))}
+            {friends.map((friend) => {
+              const selected = selectedFriends.includes(friend.id);
+              return (
+                <button
+                  key={friend.id}
+                  type="button"
+                  onClick={() =>
+                    setSelectedFriends((current) =>
+                      current.includes(friend.id) ? current.filter((id) => id !== friend.id) : [...current, friend.id],
+                    )
+                  }
+                  className="flex flex-shrink-0 snap-start flex-col items-center gap-1"
+                >
+                  <Avatar
+                    className={`h-14 w-14 ${selected ? "ring-nets-secondary ring-2 ring-offset-2" : "opacity-60"}`}
+                  >
+                    <AvatarImage src={friend.avatar} />
+                    <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
+                      {friend.name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-nets-on-surface-variant text-[10px] font-medium">{friend.name}</span>
+                </button>
+              );
+            })}
             <div className="flex flex-shrink-0 snap-start flex-col items-center gap-1">
               <div className="bg-nets-surface-container flex h-14 w-14 items-center justify-center rounded-full">
                 <User className="text-nets-tertiary h-5 w-5" />
@@ -224,13 +260,15 @@ export default function CreateGroupWallet() {
             })}
           </div>
         </div>
+
+        {error && <p className="text-nets-error rounded-xl bg-red-50 px-4 py-3 text-sm">{error}</p>}
       </div>
 
       {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
           <Button
-            onClick={() => navigate({ to: "/" })}
+            onClick={handleCreate}
             className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
           >
             Create Wallet

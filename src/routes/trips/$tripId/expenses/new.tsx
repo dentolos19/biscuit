@@ -46,6 +46,7 @@ function AddExpense() {
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<ExpenseCategory>("food");
   const [paidBy, setPaidBy] = useState("you");
+  const [paidFrom, setPaidFrom] = useState<"wallet" | "personal">("wallet");
   const [error, setError] = useState("");
 
   if (!trip) {
@@ -83,6 +84,7 @@ function AddExpense() {
       amount: parsed,
       category,
       paidBy,
+      paidFrom,
       status: "pending",
       date: new Date().toISOString().split("T")[0],
       hasReceipt: false,
@@ -92,7 +94,7 @@ function AddExpense() {
       tripId,
       type: "expense_added",
       memberId: paidBy,
-      message: `${members.find((m) => m.id === paidBy)?.name ?? "Someone"} added "${name.trim()}" ($${parsed.toFixed(2)})`,
+      message: `${paidFrom === "wallet" ? "The group wallet" : (members.find((m) => m.id === paidBy)?.name ?? "Someone")} paid "${name.trim()}" ($${parsed.toFixed(2)})`,
       timestamp: "Just now",
     });
 
@@ -174,9 +176,29 @@ function AddExpense() {
           </div>
         </div>
 
+        <div>
+          <label className="text-nets-on-surface mb-3 block text-sm font-semibold">Payment Source</label>
+          <div className="bg-nets-surface-container-low grid grid-cols-2 rounded-xl p-1">
+            {(["wallet", "personal"] as const).map((source) => (
+              <button
+                key={source}
+                type="button"
+                onClick={() => setPaidFrom(source)}
+                className={`rounded-lg py-2.5 text-sm font-semibold capitalize ${
+                  paidFrom === source ? "shadow-ambient-soft text-nets-on-surface bg-white" : "text-nets-tertiary"
+                }`}
+              >
+                {source === "wallet" ? "Group Wallet" : "Personal"}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Paid By */}
         <div>
-          <label className="text-nets-on-surface mb-3 block text-sm font-semibold">Paid By</label>
+          <label className="text-nets-on-surface mb-3 block text-sm font-semibold">
+            {paidFrom === "wallet" ? "Added By" : "Paid By"}
+          </label>
           <div className="flex flex-col gap-2">
             {members.map((m) => (
               <button

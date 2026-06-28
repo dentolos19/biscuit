@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, Award, UtensilsCrossed, BellRing, SmilePlus } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
+import { useApp } from "#/components/demo-data-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "#/components/ui/avatar";
 
 export const Route = createFileRoute("/group/")({
@@ -25,12 +26,15 @@ const badges = [
   },
 ];
 
-const reactions = [
-  { emoji: "🤤", count: 3 },
-  { emoji: "🔥", count: 1 },
-];
+function SocialActivityFeed() {
+  const { trips, activities, members, receipts, notifications, addReaction } = useApp();
+  const trip = trips.find((entry) => entry.status === "active") ?? trips[0];
+  const tripActivities = activities.filter((activity) => activity.tripId === trip?.id);
+  const unclaimedReceipt = receipts.find(
+    (receipt) => receipt.tripId === trip?.id && receipt.items.some((item) => item.claimedBy.length === 0),
+  );
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
 
-export default function SocialActivityFeed() {
   return (
     <AppLayout>
       {/* Header */}
@@ -40,10 +44,10 @@ export default function SocialActivityFeed() {
           <AvatarFallback className="bg-nets-primary-container text-xs text-white">Y</AvatarFallback>
         </Avatar>
         <h1 className="text-nets-primary flex-1 text-center text-lg font-bold">NETS Biscuit</h1>
-        <button className="relative rounded-full p-2">
+        <Link to="/notifications" className="relative rounded-full p-2">
           <Bell className="text-nets-on-surface h-5 w-5" />
-          <span className="bg-nets-primary absolute top-1 right-1 h-2 w-2 rounded-full" />
-        </button>
+          {unreadCount > 0 && <span className="bg-nets-primary absolute top-1 right-1 h-2 w-2 rounded-full" />}
+        </Link>
       </div>
 
       <div className="px-5 pb-24">
@@ -93,43 +97,61 @@ export default function SocialActivityFeed() {
         </div>
 
         {/* Nudge Banner */}
-        <div className="shadow-ambient-soft mb-5 flex items-center gap-3 rounded-2xl bg-white p-4">
-          <BellRing className="text-nets-primary h-5 w-5 flex-shrink-0" />
-          <p className="text-nets-on-surface flex-1 text-sm">Sean still needs to claim 2 receipt items</p>
-          <button className="bg-nets-primary/10 text-nets-primary rounded-full px-3 py-1.5 text-xs font-semibold">
-            Nudge
-          </button>
-        </div>
+        {unclaimedReceipt && trip && (
+          <div className="shadow-ambient-soft mb-5 flex items-center gap-3 rounded-2xl bg-white p-4">
+            <BellRing className="text-nets-primary h-5 w-5 flex-shrink-0" />
+            <p className="text-nets-on-surface flex-1 text-sm">
+              {unclaimedReceipt.items.filter((item) => item.claimedBy.length === 0).length} items still need claims
+            </p>
+            <Link
+              to="/trips/$tripId/claim"
+              params={{ tripId: trip.id }}
+              search={{ receiptId: unclaimedReceipt.id }}
+              className="bg-nets-primary/10 text-nets-primary rounded-full px-3 py-1.5 text-xs font-semibold"
+            >
+              Claim
+            </Link>
+          </div>
+        )}
 
-        {/* Expense Post */}
-        <div className="shadow-ambient-soft rounded-2xl bg-white p-4">
-          <div className="mb-3 flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
-                Z
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <p className="text-nets-on-surface text-sm font-bold">
-                Zavic paid <span className="text-nets-primary">$48.50</span>
-              </p>
-              <p className="text-nets-on-surface-variant text-xs">First meal paid @ After You · 2 hours ago</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {reactions.map((r) => (
-              <button
-                key={r.emoji}
-                className="bg-nets-surface-container-low flex items-center gap-1 rounded-full px-3 py-1.5 text-sm"
-              >
-                <span>{r.emoji}</span>
-                <span className="text-nets-on-surface-variant text-xs font-medium">{r.count}</span>
-              </button>
-            ))}
-            <button className="bg-nets-surface-container-low text-nets-tertiary flex h-8 w-8 items-center justify-center rounded-full">
-              <SmilePlus className="h-4 w-4" />
-            </button>
-          </div>
+        <div className="flex flex-col gap-3">
+          {tripActivities.map((activity) => {
+            const member = members.find((entry) => entry.id === activity.memberId);
+            return (
+              <article key={activity.id} className="shadow-ambient-soft rounded-2xl bg-white p-4">
+                <div className="mb-3 flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-sm font-semibold">
+                      {member?.name[0] ?? "B"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="text-nets-on-surface text-sm font-bold">{activity.message}</p>
+                    <p className="text-nets-on-surface-variant text-xs">{activity.timestamp}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(activity.reactions ?? []).map((reaction) => (
+                    <button
+                      key={reaction.emoji}
+                      onClick={() => addReaction(activity.id, reaction.emoji)}
+                      className="bg-nets-surface-container-low flex items-center gap-1 rounded-full px-3 py-1.5 text-sm"
+                    >
+                      <span>{reaction.emoji}</span>
+                      <span className="text-nets-on-surface-variant text-xs font-medium">{reaction.count}</span>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => addReaction(activity.id, "👏")}
+                    className="bg-nets-surface-container-low text-nets-tertiary flex h-8 w-8 items-center justify-center rounded-full"
+                    aria-label="Applaud"
+                  >
+                    <SmilePlus className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </div>
     </AppLayout>

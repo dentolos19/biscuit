@@ -180,6 +180,16 @@ function TripExpenseFeed() {
                             Receipt
                           </Badge>
                         )}
+                        {expense.receiptId && (
+                          <Link
+                            to="/trips/$tripId/claim"
+                            params={{ tripId }}
+                            search={{ receiptId: expense.receiptId }}
+                            className="text-nets-secondary text-xs font-semibold"
+                          >
+                            View split
+                          </Link>
+                        )}
                       </div>
                     </div>
                   </div>

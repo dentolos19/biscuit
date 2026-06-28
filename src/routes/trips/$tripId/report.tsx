@@ -25,7 +25,7 @@ export const Route = createFileRoute("/trips/$tripId/report")({
 
 function TripReport() {
   const { tripId } = Route.useParams();
-  const { trips, expenses, receipts, members } = useApp();
+  const { trips, expenses, receipts, members, contributions, settledTripIds } = useApp();
   const trip = trips.find((t) => t.id === tripId);
 
   if (!trip) {
@@ -41,8 +41,17 @@ function TripReport() {
     );
   }
 
-  const tripMembers = trip.memberIds.map((id) => members.find((m) => m.id === id)).filter(Boolean);
-  const settlement = computeSettlement(trip.id, trip.goal, expenses, receipts, tripMembers as any);
+  const tripMembers = trip.memberIds
+    .map((id) => members.find((member) => member.id === id))
+    .filter((member) => member !== undefined);
+  const settlement = computeSettlement(
+    trip.id,
+    expenses,
+    receipts,
+    tripMembers,
+    contributions[trip.id] ?? {},
+    settledTripIds.includes(trip.id),
+  );
   const progress = goalProgress(trip.contribution, trip.goal);
 
   return (
@@ -154,7 +163,10 @@ function TripReport() {
 
         {/* Export CTA */}
         <div className="mt-5">
-          <Button className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold">
+          <Button
+            onClick={() => window.print()}
+            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold print:hidden"
+          >
             <Download data-icon="inline-start" className="h-5 w-5" />
             Download PDF Report
           </Button>

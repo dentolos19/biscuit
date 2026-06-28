@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "nets",
+  "name": "biscuit",
   "main": "@tanstack/react-start/server-entry",
   "account_id": "d910f54eba4cf3d1634aa41c3d9a93bc",
   "compatibility_date": "2026-05-01",
@@ -15,7 +15,7 @@
     }
   },
   "route": {
-    "pattern": "nets.dennise.me",
+    "pattern": "biscuit.dennise.me",
     "custom_domain": true
   }
 }

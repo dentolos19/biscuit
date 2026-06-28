@@ -34,6 +34,7 @@ export type Expense = {
   amount: number;
   category: ExpenseCategory;
   paidBy: Member["id"];
+  paidFrom?: "wallet" | "personal";
   status: ExpenseStatus;
   date: string;
   hasReceipt: boolean;
@@ -60,6 +61,7 @@ export type Receipt = {
   total: number;
   items: ReceiptItem[];
   expenseId?: string;
+  locked?: boolean;
 };
 
 export type SplitDirection = "gets_back" | "owes";

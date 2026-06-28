@@ -1,197 +1,184 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, MoreVertical, MousePointer, Lock } from "lucide-react";
+import { ArrowLeft, Check, Lock, MousePointer } from "lucide-react";
 import { useState } from "react";
 
 import { AppLayout } from "#/components/app-layout";
+import { useApp } from "#/components/demo-data-provider";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import { Button } from "#/components/ui/button";
 import { Progress } from "#/components/ui/progress";
 
 export const Route = createFileRoute("/trips/$tripId/claim")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    receiptId: typeof search.receiptId === "string" ? search.receiptId : undefined,
+  }),
   component: ItemClaiming,
 });
 
-const friends = [
-  { name: "You", isMe: true },
-  { name: "Yu Xiang" },
-  { name: "Miguel" },
-  { name: "Zavic" },
-  { name: "Sean" },
-];
-
-const items = [
-  {
-    name: "Mango Sticky Rice",
-    price: 12.5,
-    qty: 1,
-    claimedBy: ["Yu Xiang", "Miguel"],
-    status: "split" as const,
-  },
-  {
-    name: "Thai Milk Tea",
-    price: 9.0,
-    qty: 2,
-    claimedBy: ["Zavic"],
-    status: "claimed" as const,
-  },
-  {
-    name: "Shibuya Toast",
-    price: 18.9,
-    qty: 1,
-    claimedBy: ["Sean", "Yu Xiang"],
-    status: "split" as const,
-  },
-  {
-    name: "Service Charge",
-    price: 4.04,
-    qty: 1,
-    claimedBy: [],
-    status: "unclaimed" as const,
-  },
-];
-
-export default function ItemClaiming() {
+function ItemClaiming() {
   const { tripId } = Route.useParams();
+  const { receiptId } = Route.useSearch();
   const navigate = useNavigate();
-  const [selectedFriend, setSelectedFriend] = useState(0);
-  const total = items.reduce((sum, item) => sum + item.price, 0);
+  const { getTrip, getTripMembers, getTripReceipts, claimItem, lockReceipt } = useApp();
+  const trip = getTrip(tripId);
+  const members = getTripMembers(tripId);
+  const receipts = getTripReceipts(tripId);
+  const receipt =
+    receipts.find((entry) => entry.id === receiptId) ??
+    [...receipts].reverse().find((entry) => !entry.locked) ??
+    receipts.at(-1);
+  const [selectedMemberId, setSelectedMemberId] = useState("you");
+
+  if (!trip || !receipt) {
+    return (
+      <AppLayout>
+        <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+          <p className="text-nets-on-surface-variant text-sm">No scanned receipt was found for this trip.</p>
+          <Link to="/scan" search={{ tripId }} className="text-nets-secondary mt-3 text-sm font-semibold">
+            Scan a receipt
+          </Link>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  const claimedCount = receipt.items.filter((item) => item.claimedBy.length > 0).length;
+  const progress = Math.round((claimedCount / Math.max(receipt.items.length, 1)) * 100);
+  const canLock = claimedCount === receipt.items.length;
+  const selectedMember = members.find((member) => member.id === selectedMemberId);
+
+  const handleLock = () => {
+    if (!canLock) return;
+    lockReceipt(receipt.id);
+    navigate({ to: "/trips/$tripId/split", params: { tripId } });
+  };
 
   return (
-    <AppLayout>
-      {/* Header */}
+    <AppLayout hideNav>
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-4 py-3 backdrop-blur-md">
-        <Link to="/" className="rounded-full p-2">
-          <ArrowLeft className="text-nets-on-surface h-5 w-5" />
+        <Link to="/trips/$tripId/expenses" params={{ tripId }} className="rounded-full p-2">
+          <ArrowLeft className="text-nets-on-surface size-5" />
         </Link>
-        <h1 className="text-nets-on-surface flex-1 text-center text-base font-bold">After You Dessert</h1>
-        <button className="rounded-full p-2">
-          <MoreVertical className="text-nets-on-surface h-5 w-5" />
-        </button>
+        <h1 className="text-nets-on-surface flex-1 text-center text-base font-bold">{receipt.merchantName}</h1>
+        <div className="size-9" />
       </div>
 
-      <div className="px-5 pb-24">
-        {/* Title */}
+      <div className="px-5 pb-28">
         <div className="mb-4">
-          <h2 className="text-nets-on-surface text-2xl font-extrabold">Who paid for what?</h2>
-          <p className="text-nets-on-surface-variant text-sm">Tap friends below to claim items...</p>
+          <h2 className="text-nets-on-surface text-2xl font-extrabold">Who had what?</h2>
+          <p className="text-nets-on-surface-variant text-sm">Choose a friend, then tap each item they shared.</p>
         </div>
 
-        {/* Claiming Status Banner */}
         <div className="shadow-ambient-soft mb-4 rounded-2xl bg-white p-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-nets-secondary-container text-sm text-white">M</AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center justify-between">
-                <span className="text-nets-on-surface text-sm font-semibold">Miguel still needs to claim items</span>
-                <span className="text-nets-secondary text-xs font-bold">75%</span>
-              </div>
-              <Progress value={75} className="mt-1.5 h-1.5 rounded-full" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-nets-on-surface text-sm font-semibold">
+                {canLock ? "Every item is claimed" : `${receipt.items.length - claimedCount} items still need a claim`}
+              </p>
+              <p className="text-nets-on-surface-variant text-xs">Taxes and service are allocated proportionally.</p>
             </div>
+            <span className="text-nets-secondary text-xs font-bold">{progress}%</span>
           </div>
+          <Progress value={progress} className="mt-2 h-1.5 rounded-full" />
         </div>
 
-        {/* Friends Picker */}
         <div className="snap-x-mandatory mb-5 flex gap-3 overflow-x-auto pb-2">
-          {friends.map((friend, i) => (
-            <button
-              key={friend.name}
-              onClick={() => setSelectedFriend(i)}
-              className={`flex flex-shrink-0 snap-start flex-col items-center gap-1.5 transition-all ${
-                selectedFriend === i ? "opacity-100" : "opacity-60"
-              }`}
-            >
-              <div className={`relative rounded-full p-0.5 ${selectedFriend === i ? "ring-nets-primary ring-2" : ""}`}>
-                <Avatar className="h-14 w-14">
-                  <AvatarFallback
-                    className={`text-sm font-semibold ${
-                      friend.isMe
-                        ? "bg-nets-primary-container text-white"
-                        : "bg-nets-surface-container text-nets-on-surface"
-                    }`}
-                  >
-                    {friend.name[0]}
+          {members.map((member) => {
+            const selected = member.id === selectedMemberId;
+            return (
+              <button
+                key={member.id}
+                onClick={() => setSelectedMemberId(member.id)}
+                className={`flex flex-shrink-0 snap-start flex-col items-center gap-1.5 ${selected ? "" : "opacity-55"}`}
+              >
+                <Avatar className={`size-14 ${selected ? "ring-nets-primary ring-2 ring-offset-2" : ""}`}>
+                  <AvatarFallback className={member.isCurrentUser ? "bg-nets-primary text-white" : ""}>
+                    {member.name[0]}
                   </AvatarFallback>
                 </Avatar>
-                {friend.isMe && (
-                  <span className="bg-nets-primary absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full px-2 py-0.5 text-[10px] font-bold text-white">
-                    Me
-                  </span>
-                )}
-              </div>
-              <span className="text-nets-on-surface-variant text-xs font-medium">{friend.name}</span>
-            </button>
-          ))}
+                <span className="text-nets-on-surface-variant text-xs font-medium">{member.name}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Receipt Items */}
-        <div className="space-y-2.5">
-          {items.map((item) => (
-            <div
-              key={item.name}
-              className={`shadow-ambient-soft rounded-2xl bg-white p-4 ${
-                item.status === "unclaimed" ? "border-nets-outline-variant border-2 border-dashed" : ""
-              }`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-nets-on-surface text-sm font-bold">{item.name}</h3>
-                    {item.qty > 1 && <span className="text-nets-on-surface-variant text-xs">{item.qty}x</span>}
-                  </div>
-                  <div className="mt-2 flex items-center gap-2">
-                    {item.status === "unclaimed" ? (
-                      <span className="text-nets-primary flex items-center gap-1 text-xs font-medium">
-                        <MousePointer className="h-3.5 w-3.5" />
-                        Tap to claim
-                      </span>
-                    ) : (
-                      <>
-                        <div className="flex -space-x-1.5">
-                          {item.claimedBy.map((name) => (
-                            <Avatar key={name} className="h-6 w-6 border-2 border-white">
-                              <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-[10px] font-semibold">
-                                {name[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                          ))}
-                        </div>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                            item.status === "split"
-                              ? "bg-nets-secondary/10 text-nets-secondary"
-                              : "bg-nets-surface-container-high text-nets-tertiary"
-                          }`}
-                        >
-                          {item.status === "split" ? `Split (${item.claimedBy.length})` : "Claimed"}
+        <div className="flex flex-col gap-2.5">
+          {receipt.items.map((item) => {
+            const selectedClaim = item.claimedBy.includes(selectedMemberId);
+            return (
+              <button
+                key={item.id}
+                onClick={() => claimItem(receipt.id, item.id, selectedMemberId)}
+                className={`shadow-ambient-soft rounded-2xl bg-white p-4 text-left transition-all ${
+                  selectedClaim ? "ring-nets-secondary ring-2" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-nets-on-surface text-sm font-bold">{item.name}</h3>
+                      {item.quantity > 1 && (
+                        <span className="text-nets-on-surface-variant text-xs">{item.quantity}×</span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
+                      {item.claimedBy.length === 0 ? (
+                        <span className="text-nets-primary flex items-center gap-1 text-xs font-medium">
+                          <MousePointer className="size-3.5" />
+                          Tap to claim for {selectedMember?.name}
                         </span>
-                      </>
-                    )}
+                      ) : (
+                        <>
+                          <div className="flex -space-x-1.5">
+                            {item.claimedBy.map((memberId) => {
+                              const member = members.find((entry) => entry.id === memberId);
+                              return (
+                                <Avatar key={memberId} className="size-6 border-2 border-white">
+                                  <AvatarFallback className="text-[10px]">{member?.name[0] ?? "?"}</AvatarFallback>
+                                </Avatar>
+                              );
+                            })}
+                          </div>
+                          <span className="bg-nets-secondary/10 text-nets-secondary rounded-full px-2 py-0.5 text-xs font-semibold">
+                            {item.claimedBy.length === 1 ? "Claimed" : `Shared by ${item.claimedBy.length}`}
+                          </span>
+                          {selectedClaim && <Check className="text-nets-secondary size-4" />}
+                        </>
+                      )}
+                    </div>
                   </div>
+                  <span className="text-nets-on-surface text-base font-bold">
+                    ${(item.price * item.quantity).toFixed(2)}
+                  </span>
                 </div>
-                <span className="text-nets-on-surface text-base font-bold">${item.price.toFixed(2)}</span>
-              </div>
-            </div>
-          ))}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Total */}
-        <div className="shadow-ambient-soft mt-4 flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-          <span className="text-nets-on-surface text-base font-bold">Total</span>
-          <span className="text-nets-on-surface text-xl font-extrabold">${total.toFixed(2)}</span>
+        <div className="shadow-ambient-soft mt-4 rounded-2xl bg-white p-4">
+          <div className="text-nets-on-surface-variant flex justify-between text-xs">
+            <span>Service + tax</span>
+            <span>${(receipt.serviceCharge + receipt.tax).toFixed(2)}</span>
+          </div>
+          <div className="mt-2 flex items-center justify-between">
+            <span className="text-nets-on-surface font-bold">Total</span>
+            <span className="text-nets-on-surface text-xl font-extrabold">${receipt.total.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
-      {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
           <Button
-            onClick={() => navigate({ to: "/trips/$tripId/split", params: { tripId } })}
-            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
+            onClick={handleLock}
+            disabled={!canLock}
+            className="bg-nets-primary h-14 w-full rounded-full text-base font-bold"
           >
-            <Lock data-icon="inline-start" className="h-5 w-5" />
-            Lock Split
+            <Lock data-icon="inline-start" />
+            {canLock
+              ? "Lock split"
+              : `Claim ${receipt.items.length - claimedCount} more item${receipt.items.length - claimedCount === 1 ? "" : "s"}`}
           </Button>
         </div>
       </div>

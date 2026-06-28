@@ -1,76 +1,65 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { PieChart } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
+import { useApp } from "#/components/demo-data-provider";
 import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 
 export const Route = createFileRoute("/split/")({
   component: SmartSplitIndex,
 });
 
-const recentSplits = [
-  {
-    trip: "Tokyo Trip 2024",
-    items: 4,
-    total: 44.44,
-    date: "2 hours ago",
-    people: ["You", "Yu Xiang", "Miguel", "Zavic"],
-  },
-  {
-    trip: "Bali Trip 2024",
-    items: 6,
-    total: 86.4,
-    date: "Yesterday",
-    people: ["You", "Jason Tan", "Sarah Lim"],
-  },
-];
+function SmartSplitIndex() {
+  const { trips, receipts, members } = useApp();
+  const tripsWithExpenses = trips.filter((trip) => receipts.some((receipt) => receipt.tripId === trip.id));
 
-export default function SmartSplitIndex() {
   return (
     <AppLayout>
-      {/* Header */}
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-5 py-3 backdrop-blur-md">
         <h1 className="text-nets-primary flex-1 text-lg font-bold">Smart Split</h1>
       </div>
-
-      <div className="px-5 pb-4">
-        <p className="text-nets-on-surface-variant mb-5 text-sm">Recent splits from your trips</p>
-
-        <div className="space-y-3">
-          {recentSplits.map((split) => (
-            <Link
-              key={split.trip}
-              to="/trips/tokyo-2024/split"
-              className="shadow-ambient-soft hover:shadow-ambient-pop block rounded-2xl bg-white p-4 transition-all"
-            >
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-nets-on-surface text-base font-bold">{split.trip}</h3>
-                <span className="text-nets-on-surface-variant text-xs">{split.date}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-1.5">
-                    {split.people.slice(0, 3).map((name) => (
-                      <Avatar key={name} className="h-7 w-7 border-2 border-white">
-                        <AvatarFallback className="bg-nets-surface-container text-nets-on-surface text-[10px] font-semibold">
-                          {name[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                    ))}
-                    {split.people.length > 3 && (
-                      <Avatar className="h-7 w-7 border-2 border-white">
-                        <AvatarFallback className="bg-nets-surface-container text-nets-tertiary text-[10px]">
-                          +{split.people.length - 3}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
+      <div className="px-5 pb-24">
+        <p className="text-nets-on-surface-variant mb-5 text-sm">Receipt splits from your trips</p>
+        {tripsWithExpenses.length === 0 ? (
+          <div className="shadow-ambient-soft rounded-2xl bg-white px-6 py-12 text-center">
+            <PieChart className="text-nets-tertiary mx-auto mb-3 size-9" />
+            <h2 className="text-nets-on-surface font-bold">No splits yet</h2>
+            <p className="text-nets-on-surface-variant mt-1 text-sm">Scan a receipt to start claiming items.</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {tripsWithExpenses.map((trip) => {
+              const tripReceipts = receipts.filter((receipt) => receipt.tripId === trip.id);
+              const total = tripReceipts.reduce((sum, receipt) => sum + receipt.total, 0);
+              const tripMembers = trip.memberIds
+                .map((id) => members.find((member) => member.id === id))
+                .filter((member) => member !== undefined);
+              return (
+                <Link
+                  key={trip.id}
+                  to="/trips/$tripId/split"
+                  params={{ tripId: trip.id }}
+                  className="shadow-ambient-soft block rounded-2xl bg-white p-4 transition-all"
+                >
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-nets-on-surface font-bold">{trip.name}</h3>
+                    <span className="text-nets-on-surface-variant text-xs">{tripReceipts.length} receipts</span>
                   </div>
-                  <span className="text-nets-on-surface-variant text-xs">{split.items} items</span>
-                </div>
-                <span className="text-nets-on-surface text-lg font-extrabold">${split.total.toFixed(2)}</span>
-              </div>
-            </Link>
-          ))}
-        </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex -space-x-1.5">
+                      {tripMembers.slice(0, 4).map((member) => (
+                        <Avatar key={member.id} className="size-7 border-2 border-white">
+                          <AvatarFallback className="text-[10px]">{member.name[0]}</AvatarFallback>
+                        </Avatar>
+                      ))}
+                    </div>
+                    <span className="text-nets-on-surface text-lg font-extrabold">${total.toFixed(2)}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </AppLayout>
   );

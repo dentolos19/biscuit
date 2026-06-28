@@ -1,198 +1,260 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { X, HelpCircle, Zap, Image, Receipt, Store, Calendar, Plus, ArrowRight, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { ArrowRight, Calendar, Image, Plus, Receipt, RefreshCw, Store, X, Zap } from "lucide-react";
+import { useMemo, useState } from "react";
 
+import { useApp } from "#/components/demo-data-provider";
 import { Button } from "#/components/ui/button";
+import { Input } from "#/components/ui/input";
 
 export const Route = createFileRoute("/scan")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tripId: typeof search.tripId === "string" ? search.tripId : undefined,
+  }),
   component: OCRReceiptScan,
 });
 
-const scannedItems = [
-  { name: "Mango Sticky Rice", price: 12.9, type: "item" },
-  { name: "Thai Milk Tea", price: 5.5, type: "item" },
-  { name: "Shibuya Toast", price: 18.9, type: "item" },
-  { name: "Pad Thai", price: 14.0, type: "item" },
-  { name: "Service Charge", price: 8.0, type: "fee" },
-  { name: "GST", price: 7.1, type: "tax" },
+type DraftItem = { id: string; name: string; price: string; quantity: number };
+
+const initialItems: DraftItem[] = [
+  { id: "draft-1", name: "Mango Sticky Rice", price: "12.90", quantity: 1 },
+  { id: "draft-2", name: "Thai Milk Tea", price: "5.50", quantity: 1 },
+  { id: "draft-3", name: "Shibuya Toast", price: "18.90", quantity: 1 },
+  { id: "draft-4", name: "Pad Thai", price: "14.00", quantity: 1 },
 ];
 
-export default function OCRReceiptScan() {
+function OCRReceiptScan() {
   const navigate = useNavigate();
+  const search = Route.useSearch();
+  const { trips, addReceipt } = useApp();
+  const fallbackTrip = trips.find((trip) => trip.status === "active") ?? trips[0];
+  const [tripId, setTripId] = useState(search.tripId ?? fallbackTrip?.id ?? "");
   const [merchant, setMerchant] = useState("After You Dessert Cafe");
-  const [date, setDate] = useState("Oct 15, 2024");
-  const [total, setTotal] = useState("66.40");
-  const [items, setItems] = useState(scannedItems);
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [items, setItems] = useState(initialItems);
+  const [serviceCharge, setServiceCharge] = useState("4.76");
+  const [tax, setTax] = useState("4.76");
+  const [error, setError] = useState("");
 
-  const removeItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+  const total = useMemo(
+    () =>
+      items.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0) +
+      (Number(serviceCharge) || 0) +
+      (Number(tax) || 0),
+    [items, serviceCharge, tax],
+  );
+
+  const updateItem = (id: string, patch: Partial<DraftItem>) => {
+    setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   };
+
+  const handleConfirm = () => {
+    const validItems = items
+      .map((item) => ({ name: item.name.trim(), price: Number(item.price), quantity: item.quantity }))
+      .filter((item) => item.name && Number.isFinite(item.price) && item.price > 0);
+    if (!tripId || !merchant.trim() || validItems.length === 0) {
+      setError("Choose a trip and keep at least one valid receipt item.");
+      return;
+    }
+    const receipt = addReceipt({
+      tripId,
+      merchantName: merchant.trim(),
+      date,
+      items: validItems,
+      serviceCharge: Number(serviceCharge) || 0,
+      tax: Number(tax) || 0,
+      paidBy: "you",
+      paidFrom: "wallet",
+    });
+    navigate({
+      to: "/trips/$tripId/claim",
+      params: { tripId },
+      search: { receiptId: receipt.id },
+    });
+  };
+
+  if (trips.length === 0) {
+    return (
+      <div className="bg-nets-surface mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 text-center">
+        <Receipt className="text-nets-tertiary mb-3 size-10" />
+        <h1 className="text-nets-on-surface text-lg font-bold">Create a trip first</h1>
+        <p className="text-nets-on-surface-variant mt-1 text-sm">Receipts need a group wallet to belong to.</p>
+        <Button onClick={() => navigate({ to: "/wallet/create" })} className="bg-nets-primary mt-5 rounded-full">
+          Create wallet
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-nets-surface mx-auto min-h-dvh max-w-lg">
-      {/* Header */}
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-4 py-3 backdrop-blur-md">
-        <button onClick={() => navigate({ to: "/" })} className="rounded-full p-2">
-          <X className="text-nets-on-surface h-5 w-5" />
+        <button onClick={() => navigate({ to: "/" })} className="rounded-full p-2" aria-label="Close scanner">
+          <X className="text-nets-on-surface size-5" />
         </button>
         <h1 className="text-nets-on-surface flex-1 text-center text-lg font-bold">Scan Receipt</h1>
-        <button className="rounded-full p-2">
-          <HelpCircle className="text-nets-on-surface h-5 w-5" />
-        </button>
+        <div className="size-9" />
       </div>
 
-      {/* Camera View */}
-      <div className="relative mx-5 mb-4 h-64 overflow-hidden rounded-2xl bg-gray-900">
-        {/* Simulated receipt image */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-60">
+      <div className="relative mx-5 mb-4 h-60 overflow-hidden rounded-2xl bg-gray-900">
+        <div className="absolute inset-0 flex items-center justify-center opacity-70">
           <div className="w-48 rounded bg-white p-4 text-[8px] text-gray-800 shadow-lg">
-            <p className="text-center font-bold">After You Dessert Cafe</p>
-            <p className="text-center text-[6px]">123 Orchard Road</p>
+            <p className="text-center font-bold">{merchant}</p>
             <div className="my-2 border-t border-dashed border-gray-300" />
-            <p>Mango Sticky Rice $12.90</p>
-            <p>Thai Milk Tea x2 $5.50</p>
-            <p>Shibuya Toast $18.90</p>
-            <p>Pad Thai $14.00</p>
+            {items.map((item) => (
+              <p key={item.id} className="flex justify-between">
+                <span>{item.name}</span>
+                <span>${item.price}</span>
+              </p>
+            ))}
             <div className="my-1 border-t border-dashed border-gray-300" />
-            <p>Service Charge $8.00</p>
-            <p>GST $7.10</p>
-            <div className="my-1 border-t border-dashed border-gray-300" />
-            <p className="text-right font-bold">Total: $66.40</p>
+            <p className="text-right font-bold">Total: ${total.toFixed(2)}</p>
           </div>
         </div>
-
-        {/* Viewfinder corners */}
-        <div className="border-nets-primary absolute top-4 left-4 h-8 w-8 border-t-2 border-l-2" />
-        <div className="border-nets-primary absolute top-4 right-4 h-8 w-8 border-t-2 border-r-2" />
-        <div className="border-nets-primary absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2" />
-        <div className="border-nets-primary absolute right-4 bottom-4 h-8 w-8 border-r-2 border-b-2" />
-
-        {/* Scan line */}
-        <div className="animate-scan-line bg-nets-primary absolute right-4 left-4 h-0.5 shadow-[0_0_8px_rgba(181,0,11,0.5)]" />
-
-        {/* OCR Bounding boxes */}
-        {[
-          { top: "20%", left: "15%", w: "50%", h: "8%" },
-          { top: "35%", left: "10%", w: "60%", h: "8%" },
-          { top: "50%", left: "12%", w: "45%", h: "8%" },
-          { top: "65%", left: "10%", w: "55%", h: "8%" },
-          { top: "78%", left: "20%", w: "40%", h: "8%" },
-        ].map((box, i) => (
-          <div
-            key={i}
-            className="animate-pulse-box border-nets-secondary/60 bg-nets-secondary/10 absolute border"
-            style={{
-              top: box.top,
-              left: box.left,
-              width: box.w,
-              height: box.h,
-              animationDelay: `${i * 0.2}s`,
-            }}
-          />
-        ))}
-
-        {/* Status badge */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 backdrop-blur-sm">
-          <RefreshCw className="h-3 w-3 animate-spin text-white" />
-          <span className="text-xs font-medium text-white">Extracting details...</span>
+        <div className="animate-scan-line bg-nets-primary absolute right-4 left-4 h-0.5" />
+        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5">
+          <RefreshCw className="size-3 text-white" />
+          <span className="text-xs font-medium text-white">OCR complete</span>
         </div>
-
-        {/* Flash & Gallery */}
         <div className="absolute right-3 bottom-3 flex gap-2">
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm">
-            <Zap className="h-4 w-4" />
+          <button
+            className="flex size-9 items-center justify-center rounded-full bg-black/40 text-white"
+            aria-label="Flash"
+          >
+            <Zap className="size-4" />
           </button>
-          <button className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm">
-            <Image className="h-4 w-4" />
+          <button
+            className="flex size-9 items-center justify-center rounded-full bg-black/40 text-white"
+            aria-label="Gallery"
+          >
+            <Image className="size-4" />
           </button>
         </div>
       </div>
 
-      {/* Review Panel */}
-      <div className="px-5 pb-24">
-        <div className="mb-4 flex items-center gap-2">
-          <div className="bg-nets-secondary/10 flex h-8 w-8 items-center justify-center rounded-lg">
-            <Receipt className="text-nets-secondary h-4 w-4" />
+      <div className="flex flex-col gap-4 px-5 pb-28">
+        <div className="flex items-center gap-2">
+          <div className="bg-nets-secondary/10 flex size-8 items-center justify-center rounded-lg">
+            <Receipt className="text-nets-secondary size-4" />
           </div>
-          <h2 className="text-nets-on-surface text-lg font-bold">Review Details</h2>
+          <h2 className="text-nets-on-surface text-lg font-bold">Review OCR details</h2>
         </div>
 
-        {/* Form Fields */}
-        <div className="mb-4 space-y-3">
-          <div className="border-nets-outline-variant flex items-center gap-3 border-b py-2">
-            <Store className="text-nets-tertiary h-4 w-4" />
-            <input
-              type="text"
-              value={merchant}
-              onChange={(e) => setMerchant(e.target.value)}
-              className="text-nets-on-surface flex-1 bg-transparent text-sm focus:outline-none"
-            />
-          </div>
-          <div className="border-nets-outline-variant flex items-center gap-3 border-b py-2">
-            <Calendar className="text-nets-tertiary h-4 w-4" />
-            <input
-              type="text"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              className="text-nets-on-surface flex-1 bg-transparent text-sm focus:outline-none"
-            />
-          </div>
-          <div className="border-nets-outline-variant flex items-center gap-3 border-b py-2">
-            <span className="text-nets-primary text-sm font-bold">$</span>
-            <input
-              type="text"
-              value={total}
-              onChange={(e) => setTotal(e.target.value)}
-              className="text-nets-on-surface flex-1 bg-transparent text-sm font-bold focus:outline-none"
-            />
-          </div>
+        <label className="flex flex-col gap-1.5 text-sm font-semibold">
+          Trip wallet
+          <select
+            value={tripId}
+            onChange={(event) => setTripId(event.target.value)}
+            className="border-nets-outline-variant h-11 rounded-xl border bg-white px-3 text-sm"
+          >
+            {trips.map((trip) => (
+              <option key={trip.id} value={trip.id}>
+                {trip.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="grid grid-cols-[1fr_150px] gap-3">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
+            Merchant
+            <div className="relative">
+              <Store className="text-nets-tertiary absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                value={merchant}
+                onChange={(event) => setMerchant(event.target.value)}
+                className="rounded-xl bg-white pl-9"
+              />
+            </div>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
+            Date
+            <div className="relative">
+              <Calendar className="text-nets-tertiary absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                className="rounded-xl bg-white pl-9"
+              />
+            </div>
+          </label>
         </div>
 
-        {/* Scanned Items */}
-        <div className="mb-4">
-          <h3 className="text-nets-on-surface mb-2 text-sm font-bold">Scanned Items</h3>
-          <div className="space-y-1.5">
-            {items.map((item, i) => (
-              <div
-                key={`${item.name}-${i}`}
-                className="flex items-center justify-between rounded-xl bg-white px-3 py-2.5"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-nets-on-surface text-sm">{item.name}</span>
-                  {(item.type === "fee" || item.type === "tax") && (
-                    <span className="bg-nets-surface-container-high text-nets-tertiary rounded-full px-2 py-0.5 text-[10px] font-semibold capitalize">
-                      {item.type}
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-nets-on-surface text-sm font-semibold">${item.price.toFixed(2)}</span>
-                  <button
-                    onClick={() => removeItem(i)}
-                    className="text-nets-tertiary hover:text-nets-error rounded-full p-1"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+        <div>
+          <h3 className="text-nets-on-surface mb-2 text-sm font-bold">Items</h3>
+          <div className="flex flex-col gap-2">
+            {items.map((item) => (
+              <div key={item.id} className="grid grid-cols-[1fr_76px_32px] items-center gap-2 rounded-xl bg-white p-2">
+                <Input
+                  value={item.name}
+                  onChange={(event) => updateItem(item.id, { name: event.target.value })}
+                  aria-label="Item name"
+                  className="border-0 shadow-none"
+                />
+                <Input
+                  inputMode="decimal"
+                  value={item.price}
+                  onChange={(event) => updateItem(item.id, { price: event.target.value.replace(/[^0-9.]/g, "") })}
+                  aria-label={`${item.name} price`}
+                  className="text-right"
+                />
+                <button
+                  onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}
+                  className="text-nets-tertiary flex size-8 items-center justify-center"
+                  aria-label={`Remove ${item.name}`}
+                >
+                  <X className="size-4" />
+                </button>
               </div>
             ))}
           </div>
-          <button className="text-nets-secondary mt-2 flex items-center gap-1 text-sm font-semibold">
-            <Plus className="h-4 w-4" />
-            Add Item
+          <button
+            onClick={() =>
+              setItems((current) => [
+                ...current,
+                { id: `draft-${Date.now()}`, name: "New item", price: "0.00", quantity: 1 },
+              ])
+            }
+            className="text-nets-secondary mt-2 flex items-center gap-1 text-sm font-semibold"
+          >
+            <Plus className="size-4" />
+            Add item
           </button>
         </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="text-nets-on-surface-variant flex flex-col gap-1 text-xs">
+            Service charge
+            <Input
+              value={serviceCharge}
+              onChange={(event) => setServiceCharge(event.target.value)}
+              inputMode="decimal"
+              className="bg-white"
+            />
+          </label>
+          <label className="text-nets-on-surface-variant flex flex-col gap-1 text-xs">
+            Tax / GST
+            <Input
+              value={tax}
+              onChange={(event) => setTax(event.target.value)}
+              inputMode="decimal"
+              className="bg-white"
+            />
+          </label>
+        </div>
+
+        <div className="shadow-ambient-soft flex items-center justify-between rounded-2xl bg-white px-4 py-3">
+          <span className="text-nets-on-surface text-sm font-bold">Receipt total</span>
+          <span className="text-nets-primary text-xl font-extrabold">${total.toFixed(2)}</span>
+        </div>
+        {error && <p className="text-nets-error rounded-xl bg-red-50 px-4 py-3 text-sm">{error}</p>}
       </div>
 
-      {/* Fixed Bottom CTA */}
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
-          <Button
-            onClick={() => navigate({ to: "/trips/bangkok-2024/claim" })}
-            className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
-          >
-            Confirm & Continue
-            <ArrowRight data-icon="inline-end" className="h-5 w-5" />
+          <Button onClick={handleConfirm} className="bg-nets-primary h-14 w-full rounded-full text-base font-bold">
+            Save receipt & claim
+            <ArrowRight data-icon="inline-end" />
           </Button>
         </div>
       </div>

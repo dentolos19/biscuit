@@ -29,7 +29,7 @@ export const Route = createFileRoute("/trips/$tripId/")({
 });
 
 function TripDetail() {
-  const { trips, expenses, contributions, members } = useApp();
+  const { trips, expenses, contributions, members, receipts, settledTripIds } = useApp();
   const { tripId } = Route.useParams();
   const trip = trips.find((t) => t.id === tripId);
 
@@ -56,8 +56,11 @@ function TripDetail() {
     { label: "Plan", done: true },
     { label: "Save", done: progress >= 100 },
     { label: "Spend", done: tripExpensesList.length > 0 },
-    { label: "Split", done: false },
-    { label: "Settle", done: false },
+    {
+      label: "Split",
+      done: receipts.some((receipt) => receipt.tripId === trip.id && receipt.locked),
+    },
+    { label: "Settle", done: settledTripIds.includes(trip.id) },
   ];
 
   return (
@@ -166,6 +169,7 @@ function TripDetail() {
         <div className="mt-5 grid grid-cols-2 gap-3">
           <Link
             to="/group/contribution"
+            search={{ tripId }}
             className="bg-nets-primary shadow-ambient-soft flex items-center gap-3 rounded-2xl p-4 text-white transition-all active:scale-[0.97]"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
@@ -185,6 +189,7 @@ function TripDetail() {
           </Link>
           <Link
             to="/scan"
+            search={{ tripId }}
             className="shadow-ambient-soft text-nets-on-surface flex items-center gap-3 rounded-2xl bg-white p-4 transition-all active:scale-[0.97]"
           >
             <div className="bg-nets-surface-container flex h-10 w-10 items-center justify-center rounded-xl">

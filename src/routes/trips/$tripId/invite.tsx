@@ -17,7 +17,7 @@ export const Route = createFileRoute("/trips/$tripId/invite")({
 function InviteContacts() {
   const { tripId } = Route.useParams();
   const navigate = useNavigate();
-  const { getTrip } = useApp();
+  const { getTrip, addMembers } = useApp();
   const trip = getTrip(tripId);
 
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -45,9 +45,15 @@ function InviteContacts() {
     });
   };
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
+    await navigator.clipboard?.writeText(`${window.location.origin}/trips/${tripId}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleInvite = () => {
+    addMembers(tripId, Array.from(selected));
+    navigate({ to: "/trips/$tripId", params: { tripId } });
   };
 
   return (
@@ -127,7 +133,8 @@ function InviteContacts() {
       <div className="border-nets-outline-variant/30 fixed right-0 bottom-0 left-0 border-t bg-white/90 p-4 backdrop-blur-lg">
         <div className="mx-auto max-w-lg">
           <Button
-            onClick={() => navigate({ to: "/trips/$tripId", params: { tripId } })}
+            onClick={handleInvite}
+            disabled={selected.size === 0}
             className="bg-nets-primary shadow-ambient-soft hover:bg-nets-primary/90 h-14 w-full rounded-full text-base font-bold"
           >
             <UserPlus data-icon="inline-start" className="h-5 w-5" />
