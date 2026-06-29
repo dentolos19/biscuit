@@ -13,8 +13,8 @@ import {
   Bell,
   Share2,
   FileText,
-  CheckCircle,
   ChevronRight,
+  Clock3,
 } from "lucide-react";
 
 import { AppLayout } from "#/components/app-layout";
@@ -23,13 +23,14 @@ import { Avatar, AvatarFallback } from "#/components/ui/avatar";
 import { Badge } from "#/components/ui/badge";
 import { Progress } from "#/components/ui/progress";
 import { goalProgress, tripExpenses } from "#/lib/finance";
+import type { PlanType } from "#/lib/types";
 
 export const Route = createFileRoute("/trips/$tripId/")({
   component: TripDetail,
 });
 
 function TripDetail() {
-  const { trips, expenses, contributions, members, receipts, settledTripIds } = useApp();
+  const { trips, expenses, contributions, members } = useApp();
   const { tripId } = Route.useParams();
   const trip = trips.find((t) => t.id === tripId);
 
@@ -38,7 +39,7 @@ function TripDetail() {
       <AppLayout>
         <div className="flex h-dvh flex-col items-center justify-center px-6 text-center">
           <p className="text-nets-on-surface-variant text-sm">Trip not found.</p>
-          <Link to="/" className="text-nets-secondary mt-2 text-sm font-semibold">
+          <Link to="/" hash="home" className="text-nets-secondary mt-2 text-sm font-semibold">
             Go back home
           </Link>
         </div>
@@ -51,23 +52,15 @@ function TripDetail() {
   const tripExpensesList = tripExpenses(trip.id, expenses);
   const tripMembers = trip.memberIds.map((id) => members.find((m) => m.id === id)).filter(Boolean);
   const tripContribs = contributions[trip.id] ?? {};
-
-  const timeline = [
-    { label: "Plan", done: true },
-    { label: "Save", done: progress >= 100 },
-    { label: "Spend", done: tripExpensesList.length > 0 },
-    {
-      label: "Split",
-      done: receipts.some((receipt) => receipt.tripId === trip.id && receipt.locked),
-    },
-    { label: "Settle", done: settledTripIds.includes(trip.id) },
-  ];
+  const planLabel = planTypeLabel(trip.planType);
+  const countdown = countdownSummary(trip.startDate);
+  const countdownTitle = countdown.days === 0 ? `${planLabel} starts today` : `${countdown.days} days to go`;
 
   return (
     <AppLayout>
       {/* Header */}
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-4 py-3 backdrop-blur-md">
-        <Link to="/" className="rounded-full p-2">
+        <Link to="/" hash="home" className="rounded-full p-2">
           <ArrowLeft className="text-nets-on-surface h-5 w-5" />
         </Link>
         <h1 className="text-nets-primary flex-1 text-center text-lg font-bold">NETS Biscuit</h1>
@@ -90,7 +83,11 @@ function TripDetail() {
             variant="secondary"
             className="bg-nets-secondary-fixed/50 text-nets-secondary mb-3 gap-1 rounded-full text-xs font-semibold"
           >
-            {trip.status === "active" ? "Active Trip" : trip.status === "upcoming" ? "Upcoming Trip" : "Completed"}
+            {trip.status === "active"
+              ? `Active ${planLabel}`
+              : trip.status === "upcoming"
+                ? `Upcoming ${planLabel}`
+                : `Completed ${planLabel}`}
           </Badge>
 
           <h2 className="text-nets-on-surface mb-2 text-2xl font-extrabold">{trip.name}</h2>
@@ -135,33 +132,29 @@ function TripDetail() {
           </div>
         </div>
 
-        {/* Journey Timeline */}
+        {/* Countdown */}
         <div className="mt-5">
-          <h3 className="text-nets-on-surface mb-3 text-base font-bold">Trip Journey</h3>
-          <div className="shadow-ambient-soft flex items-center justify-between rounded-2xl bg-white px-4 py-3">
-            {timeline.map((step, i) => (
-              <div key={step.label} className="flex items-center">
-                <div className="flex flex-col items-center gap-1">
-                  <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ${
-                      step.done ? "bg-nets-secondary text-white" : "bg-nets-surface-container-high text-nets-tertiary"
-                    }`}
-                  >
-                    {step.done ? <CheckCircle className="h-4 w-4" /> : i + 1}
-                  </div>
-                  <span
-                    className={`text-[10px] font-medium ${step.done ? "text-nets-secondary" : "text-nets-tertiary"}`}
-                  >
-                    {step.label}
-                  </span>
+          <h3 className="text-nets-on-surface mb-3 text-base font-bold">{planLabel} Countdown</h3>
+          <div className="shadow-ambient-soft overflow-hidden rounded-3xl bg-white">
+            <div className="bg-nets-primary px-5 py-5 text-white">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold tracking-wide text-white/75 uppercase">Before it begins</p>
+                  <h4 className="mt-1 text-3xl font-extrabold">{countdownTitle}</h4>
+                  <p className="mt-1 text-sm font-semibold text-white/75">
+                    {countdown.helperText || `${trip.name} is coming up on ${trip.dates}.`}
+                  </p>
                 </div>
-                {i < timeline.length - 1 && (
-                  <div
-                    className={`mx-1 h-0.5 w-4 ${step.done ? "bg-nets-secondary" : "bg-nets-surface-container-high"}`}
-                  />
-                )}
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15">
+                  <Clock3 className="h-6 w-6" />
+                </div>
               </div>
-            ))}
+            </div>
+            <div className="grid grid-cols-3 gap-2 p-4">
+              <CountdownStat label="Weeks" value={String(countdown.weeks)} />
+              <CountdownStat label="Days" value={String(countdown.remainingDays)} />
+              <CountdownStat label="Date" value={trip.dates} compact />
+            </div>
           </div>
         </div>
 
@@ -310,4 +303,61 @@ function TripDetail() {
       </div>
     </AppLayout>
   );
+}
+
+function CountdownStat({ label, value, compact = false }: { label: string; value: string; compact?: boolean }) {
+  return (
+    <div className="bg-nets-surface-container-low min-w-0 rounded-2xl px-3 py-3 text-center">
+      <p
+        className={cnText(
+          "text-nets-on-surface truncate font-extrabold",
+          compact ? "text-xs leading-5" : "text-2xl leading-none",
+        )}
+      >
+        {value}
+      </p>
+      <p className="text-nets-on-surface-variant mt-1 text-[10px] font-bold">{label}</p>
+    </div>
+  );
+}
+
+function countdownSummary(startDate: string | undefined) {
+  if (!startDate) {
+    return {
+      days: 0,
+      weeks: 0,
+      remainingDays: 0,
+      helperText: "Add a date to unlock a live countdown.",
+    };
+  }
+
+  const target = new Date(`${startDate}T00:00:00`);
+  if (Number.isNaN(target.getTime())) {
+    return {
+      days: 0,
+      weeks: 0,
+      remainingDays: 0,
+      helperText: "Add a date to unlock a live countdown.",
+    };
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days = Math.max(Math.ceil((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000)), 0);
+
+  return {
+    days,
+    weeks: Math.floor(days / 7),
+    remainingDays: days % 7,
+    helperText: days === 0 ? "Time to enjoy the plan with your group." : "Keep the group excited and on track.",
+  };
+}
+
+function planTypeLabel(planType: PlanType | undefined) {
+  if (!planType) return "Trip";
+  return planType.charAt(0).toUpperCase() + planType.slice(1);
+}
+
+function cnText(...classes: string[]) {
+  return classes.filter(Boolean).join(" ");
 }

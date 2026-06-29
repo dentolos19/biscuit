@@ -10,7 +10,17 @@ import {
   RECEIPTS,
   TRIPS,
 } from "#/lib/demo-data";
-import type { Activity, Expense, Member, Notification, Receipt, Trip, TripStatus } from "#/lib/types";
+import type {
+  Activity,
+  Expense,
+  Member,
+  Notification,
+  PlanType,
+  PlannedExpense,
+  Receipt,
+  Trip,
+  TripStatus,
+} from "#/lib/types";
 
 const STORAGE_KEY = "nets-biscuit-demo";
 const STORAGE_VERSION = 2;
@@ -31,9 +41,14 @@ export type AppState = {
 
 type CreateTripInput = {
   name: string;
+  planType?: PlanType;
   destination: string;
+  description?: string;
   dates: string;
+  startDate?: string;
   goal: number;
+  memberSavingsGoal?: Record<string, number>;
+  plannedExpenses?: PlannedExpense[];
   purposes: string[];
   splitType: Trip["splitType"];
   memberIds: string[];
@@ -360,13 +375,18 @@ export const appStore = new Store(freshState(), ({ setState }) => ({
     const newTrip: Trip = {
       id,
       name: input.name,
+      planType: input.planType ?? "trip",
       destination: input.destination,
+      description: input.description,
       imageUrl: destinationImage(input.destination),
       dates: input.dates,
+      startDate: input.startDate,
       status: "upcoming",
       goal: input.goal,
       contribution: 0,
       memberIds: Array.from(new Set(["you", ...input.memberIds])),
+      memberSavingsGoal: input.memberSavingsGoal,
+      plannedExpenses: input.plannedExpenses,
       purposes: input.purposes,
       splitType: input.splitType,
     };

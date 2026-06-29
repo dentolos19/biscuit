@@ -76,10 +76,10 @@ function OCRReceiptScan() {
     return (
       <div className="bg-nets-surface mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 text-center">
         <Receipt className="text-nets-tertiary mb-3 size-10" />
-        <h1 className="text-nets-on-surface text-lg font-bold">Create a trip first</h1>
-        <p className="text-nets-on-surface-variant mt-1 text-sm">Receipts need a group wallet to belong to.</p>
-        <Button onClick={() => navigate({ to: "/wallet/create" })} className="bg-nets-primary mt-5 rounded-full">
-          Create wallet
+        <h1 className="text-nets-on-surface text-lg font-bold">Create a trip or event first</h1>
+        <p className="text-nets-on-surface-variant mt-1 text-sm">Receipts need a group plan to belong to.</p>
+        <Button onClick={() => navigate({ to: "/" })} className="bg-nets-primary mt-5 rounded-full">
+          Create plan
         </Button>
       </div>
     );

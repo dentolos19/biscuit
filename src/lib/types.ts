@@ -8,17 +8,30 @@ export type Member = {
 };
 
 export type TripStatus = "upcoming" | "active" | "completed";
+export type PlanType = "trip" | "event" | "concert" | "gathering" | "activity";
+
+export type PlannedExpense = {
+  id: string;
+  name: string;
+  description?: string;
+  estimatedCost: number;
+};
 
 export type Trip = {
   id: string;
   name: string;
+  planType?: PlanType;
   destination: string;
+  description?: string;
   imageUrl: string;
   dates: string;
+  startDate?: string;
   status: TripStatus;
   goal: number;
   contribution: number;
   memberIds: string[];
+  memberSavingsGoal?: Record<Member["id"], number>;
+  plannedExpenses?: PlannedExpense[];
   purposes: string[];
   splitType: "equal" | "flexible" | "custom";
 };

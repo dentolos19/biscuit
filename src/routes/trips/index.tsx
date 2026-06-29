@@ -29,11 +29,11 @@ function TripsList() {
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center justify-between px-5 py-3 backdrop-blur-md">
         <h1 className="text-nets-primary text-lg font-bold">NETS Biscuit</h1>
         <Link
-          to="/wallet/create"
+          to="/"
           className="bg-nets-primary/10 text-nets-primary flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold"
         >
           <Plus className="h-4 w-4" />
-          New Trip
+          New Plan
         </Link>
       </div>
 
@@ -51,11 +51,11 @@ function TripsList() {
               Create a group wallet to start saving with friends.
             </p>
             <Link
-              to="/wallet/create"
+              to="/"
               className="bg-nets-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
             >
               <Plus className="h-4 w-4" />
-              Create Your First Trip
+              Create Your First Plan
             </Link>
           </div>
         ) : (
