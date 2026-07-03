@@ -76,7 +76,7 @@ function CreateTripHome() {
   const [pendingInvites, setPendingInvites] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [createdTripId, setCreatedTripId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(location.hash !== "home" && location.hash !== "#home");
+  const [isCreating, setIsCreating] = useState(location.hash === "create" || location.hash === "#create");
   const [step, setStep] = useState(0);
   const [shareCopied, setShareCopied] = useState(false);
 
@@ -461,7 +461,7 @@ function CreateTripHome() {
                       <div className="border-nets-outline-variant/70 bg-nets-surface-container-low rounded-3xl border border-dashed px-5 py-8 text-center">
                         <p className="text-nets-on-surface text-sm font-extrabold">No expenses added yet</p>
                         <p className="text-nets-on-surface-variant mt-1 text-xs font-semibold">
-                          Add items manually or use the placeholder AI generator to start a budget.
+                          Add items manually or use the guided generator to start a budget.
                         </p>
                       </div>
                     ) : (
@@ -536,7 +536,7 @@ function CreateTripHome() {
               <WizardPanel
                 eyebrow="Invite members"
                 title="Bring your group in"
-                description="Pick members, share a placeholder invite link, and decide whether each person saves the same amount."
+                description="Pick members, prepare an invite link, and decide whether each person saves the same amount."
                 icon={UserPlus}
               >
                 <div className="space-y-4">
@@ -561,7 +561,7 @@ function CreateTripHome() {
                       </Button>
                     </div>
                     <p className="text-nets-on-surface-variant text-xs font-semibold">
-                      This placeholder can be replaced by the generated invite link later.
+                      The live group link is available as soon as you create the plan.
                     </p>
                   </div>
 

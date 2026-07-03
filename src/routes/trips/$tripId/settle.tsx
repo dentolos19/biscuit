@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowLeft, ArrowUp, Banknote, CheckCircle, FileText, PieChart, Wallet } from "lucide-react";
-import { useState } from "react";
 
 import { useApp } from "#/components/demo-data-provider";
 import { Button } from "#/components/ui/button";
@@ -21,12 +20,24 @@ const confetti = Array.from({ length: 12 }, (_, index) => ({
 function EndTripSettlement() {
   const { tripId } = Route.useParams();
   const navigate = useNavigate();
-  const { getTrip, getTripMembers, expenses, receipts, contributions, settledTripIds, settleTrip } = useApp();
+  const {
+    getTrip,
+    getTripMembers,
+    expenses,
+    receipts,
+    contributions,
+    settledTripIds,
+    refundedTripIds,
+    settleTrip,
+    refundTrip,
+  } = useApp();
   const trip = getTrip(tripId);
   const members = getTripMembers(tripId);
   const alreadySettled = settledTripIds.includes(tripId);
-  const [justSettled, setJustSettled] = useState(false);
-  const [refunded, setRefunded] = useState(false);
+  const refunded = refundedTripIds.includes(tripId);
+  const unclaimedReceipt = receipts.find(
+    (receipt) => receipt.tripId === tripId && receipt.items.some((item) => item.claimedBy.length === 0),
+  );
 
   if (!trip) {
     return (
@@ -44,11 +55,12 @@ function EndTripSettlement() {
     contributions[tripId] ?? {},
     alreadySettled,
   );
-  const isSettled = alreadySettled || justSettled;
+  const isSettled = alreadySettled;
+  const hasWalletShortfall = settlement.remainingBalance < 0;
 
   const handleSettle = () => {
+    if (unclaimedReceipt) return;
     settleTrip(tripId);
-    setJustSettled(true);
   };
 
   return (
@@ -103,8 +115,17 @@ function EndTripSettlement() {
 
         <div className="shadow-ambient-soft mb-4 w-full rounded-2xl bg-white p-5">
           <div className="mb-4 text-center">
-            <p className="text-nets-on-surface-variant text-sm font-medium">Remaining Wallet Balance</p>
-            <p className="text-nets-primary mt-1 text-4xl font-extrabold">${settlement.remainingBalance.toFixed(2)}</p>
+            <p className="text-nets-on-surface-variant text-sm font-medium">
+              {hasWalletShortfall ? "Wallet Shortfall" : "Remaining Wallet Balance"}
+            </p>
+            <p className="text-nets-primary mt-1 text-4xl font-extrabold">
+              ${Math.abs(settlement.remainingBalance).toFixed(2)}
+            </p>
+            {hasWalletShortfall && (
+              <p className="text-nets-on-surface-variant mt-2 text-xs">
+                Member top-ups below cover this amount before final transfers.
+              </p>
+            )}
           </div>
           <div className="border-nets-outline-variant flex items-center border-t pt-4">
             <div className="flex-1 text-center">
@@ -134,15 +155,29 @@ function EndTripSettlement() {
         </div>
 
         <div className="flex w-full flex-col gap-3">
+          {!isSettled && unclaimedReceipt && (
+            <Link
+              to="/trips/$tripId/claim"
+              params={{ tripId }}
+              search={{ receiptId: unclaimedReceipt.id }}
+              className="border-nets-primary/20 bg-nets-primary/5 text-nets-primary rounded-2xl border px-4 py-3 text-center text-sm font-semibold"
+            >
+              Finish claiming {unclaimedReceipt.merchantName} before settlement
+            </Link>
+          )}
           {!isSettled ? (
-            <Button onClick={handleSettle} className="bg-nets-primary h-14 w-full rounded-full text-base font-bold">
+            <Button
+              onClick={handleSettle}
+              disabled={Boolean(unclaimedReceipt)}
+              className="bg-nets-primary h-14 w-full rounded-full text-base font-bold"
+            >
               <Wallet data-icon="inline-start" />
               Settle with NETS
             </Button>
           ) : (
             <Button
               variant="outline"
-              onClick={() => setRefunded(true)}
+              onClick={() => refundTrip(tripId)}
               disabled={refunded || settlement.remainingBalance <= 0}
               className="border-nets-secondary text-nets-secondary h-12 w-full rounded-full"
             >

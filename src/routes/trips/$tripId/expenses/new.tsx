@@ -38,9 +38,14 @@ const categoryOptions: { name: string; icon: typeof Receipt; value: ExpenseCateg
 function AddExpense() {
   const { tripId } = Route.useParams();
   const navigate = useNavigate();
-  const { getTrip, getTripMembers, addExpense, addActivity } = useApp();
+  const { getTrip, getTripMembers, getTripExpenses, contributions, addExpense, addActivity } = useApp();
   const trip = getTrip(tripId);
   const members = getTripMembers(tripId);
+  const walletSpent = getTripExpenses(tripId)
+    .filter((expense) => (expense.paidFrom ?? "wallet") === "wallet")
+    .reduce((sum, expense) => sum + expense.amount, 0);
+  const walletBalance =
+    Object.values(contributions[tripId] ?? {}).reduce((sum, contribution) => sum + contribution, 0) - walletSpent;
 
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -75,6 +80,12 @@ function AddExpense() {
     const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) {
       setError("Please enter a valid amount");
+      return;
+    }
+    if (paidFrom === "wallet" && parsed > walletBalance) {
+      setError(
+        `This wallet only has $${Math.max(walletBalance, 0).toFixed(2)} available. Add funds or use a personal payment.`,
+      );
       return;
     }
 
@@ -192,6 +203,11 @@ function AddExpense() {
               </button>
             ))}
           </div>
+          {paidFrom === "wallet" && (
+            <p className="text-nets-on-surface-variant mt-2 text-xs font-semibold">
+              Available wallet balance: ${Math.max(walletBalance, 0).toFixed(2)}
+            </p>
+          )}
         </div>
 
         {/* Paid By */}

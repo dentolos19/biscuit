@@ -111,9 +111,11 @@ function TripReport() {
             <div className="mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
               <CheckCircle className="h-4 w-4 text-emerald-600" />
             </div>
-            <span className="text-nets-on-surface-variant text-xs">Remaining</span>
+            <span className="text-nets-on-surface-variant text-xs">
+              {settlement.remainingBalance < 0 ? "Wallet Shortfall" : "Remaining Wallet"}
+            </span>
             <p className="text-nets-on-surface text-lg font-extrabold">
-              ${settlement.remainingBalance.toLocaleString()}
+              ${Math.abs(settlement.remainingBalance).toLocaleString()}
             </p>
           </div>
           <div className="shadow-ambient-soft rounded-2xl bg-white p-4">

@@ -30,6 +30,7 @@ function TripsList() {
         <h1 className="text-nets-primary text-lg font-bold">NETS Biscuit</h1>
         <Link
           to="/"
+          hash="create"
           className="bg-nets-primary/10 text-nets-primary flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-semibold"
         >
           <Plus className="h-4 w-4" />
@@ -52,6 +53,7 @@ function TripsList() {
             </p>
             <Link
               to="/"
+              hash="create"
               className="bg-nets-primary flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white"
             >
               <Plus className="h-4 w-4" />

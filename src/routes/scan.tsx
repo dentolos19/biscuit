@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, Calendar, Image, Plus, Receipt, RefreshCw, Store, X, Zap } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ArrowRight, Calendar, Camera, Image, Plus, Receipt, RefreshCw, Store, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 
 import { useApp } from "#/components/demo-data-provider";
 import { Button } from "#/components/ui/button";
@@ -25,7 +26,7 @@ const initialItems: DraftItem[] = [
 function OCRReceiptScan() {
   const navigate = useNavigate();
   const search = Route.useSearch();
-  const { trips, addReceipt } = useApp();
+  const { trips, expenses, contributions, getTripMembers, addReceipt } = useApp();
   const fallbackTrip = trips.find((trip) => trip.status === "active") ?? trips[0];
   const [tripId, setTripId] = useState(search.tripId ?? fallbackTrip?.id ?? "");
   const [merchant, setMerchant] = useState("After You Dessert Cafe");
@@ -33,7 +34,14 @@ function OCRReceiptScan() {
   const [items, setItems] = useState(initialItems);
   const [serviceCharge, setServiceCharge] = useState("4.76");
   const [tax, setTax] = useState("4.76");
+  const [paidBy, setPaidBy] = useState("you");
+  const [paidFrom, setPaidFrom] = useState<"wallet" | "personal">("wallet");
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageName, setImageName] = useState("");
+  const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const total = useMemo(
     () =>
@@ -42,9 +50,33 @@ function OCRReceiptScan() {
       (Number(tax) || 0),
     [items, serviceCharge, tax],
   );
+  const tripMembers = getTripMembers(tripId);
+  const walletSpent = expenses
+    .filter((expense) => expense.tripId === tripId && (expense.paidFrom ?? "wallet") === "wallet")
+    .reduce((sum, expense) => sum + expense.amount, 0);
+  const walletBalance = Object.values(contributions[tripId] ?? {}).reduce((sum, value) => sum + value, 0) - walletSpent;
 
   const updateItem = (id: string, patch: Partial<DraftItem>) => {
     setItems((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  };
+
+  const handleImage = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError("");
+    setImageName(file.name);
+    setAnalyzing(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImagePreview(typeof reader.result === "string" ? reader.result : "");
+      window.setTimeout(() => setAnalyzing(false), 700);
+    };
+    reader.onerror = () => {
+      setAnalyzing(false);
+      setError("That image could not be read. Try another receipt photo.");
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
   };
 
   const handleConfirm = () => {
@@ -55,6 +87,12 @@ function OCRReceiptScan() {
       setError("Choose a trip and keep at least one valid receipt item.");
       return;
     }
+    if (paidFrom === "wallet" && total > walletBalance) {
+      setError(
+        `This wallet only has $${Math.max(walletBalance, 0).toFixed(2)} available. Add funds or record it as a personal payment.`,
+      );
+      return;
+    }
     const receipt = addReceipt({
       tripId,
       merchantName: merchant.trim(),
@@ -62,8 +100,8 @@ function OCRReceiptScan() {
       items: validItems,
       serviceCharge: Number(serviceCharge) || 0,
       tax: Number(tax) || 0,
-      paidBy: "you",
-      paidFrom: "wallet",
+      paidBy,
+      paidFrom,
     });
     navigate({
       to: "/trips/$tripId/claim",
@@ -72,13 +110,21 @@ function OCRReceiptScan() {
     });
   };
 
+  const handleClose = () => {
+    if (tripId) {
+      navigate({ to: "/trips/$tripId", params: { tripId } });
+      return;
+    }
+    navigate({ to: "/", hash: "home" });
+  };
+
   if (trips.length === 0) {
     return (
       <div className="bg-nets-surface mx-auto flex min-h-dvh max-w-lg flex-col items-center justify-center px-6 text-center">
         <Receipt className="text-nets-tertiary mb-3 size-10" />
         <h1 className="text-nets-on-surface text-lg font-bold">Create a trip or event first</h1>
         <p className="text-nets-on-surface-variant mt-1 text-sm">Receipts need a group plan to belong to.</p>
-        <Button onClick={() => navigate({ to: "/" })} className="bg-nets-primary mt-5 rounded-full">
+        <Button onClick={() => navigate({ to: "/", hash: "create" })} className="bg-nets-primary mt-5 rounded-full">
           Create plan
         </Button>
       </div>
@@ -88,7 +134,7 @@ function OCRReceiptScan() {
   return (
     <div className="bg-nets-surface mx-auto min-h-dvh max-w-lg">
       <div className="bg-nets-surface/90 sticky top-0 z-40 flex items-center px-4 py-3 backdrop-blur-md">
-        <button onClick={() => navigate({ to: "/" })} className="rounded-full p-2" aria-label="Close scanner">
+        <button onClick={handleClose} className="rounded-full p-2" aria-label="Close scanner">
           <X className="text-nets-on-surface size-5" />
         </button>
         <h1 className="text-nets-on-surface flex-1 text-center text-lg font-bold">Scan Receipt</h1>
@@ -96,39 +142,66 @@ function OCRReceiptScan() {
       </div>
 
       <div className="relative mx-5 mb-4 h-60 overflow-hidden rounded-2xl bg-gray-900">
-        <div className="absolute inset-0 flex items-center justify-center opacity-70">
-          <div className="w-48 rounded bg-white p-4 text-[8px] text-gray-800 shadow-lg">
-            <p className="text-center font-bold">{merchant}</p>
-            <div className="my-2 border-t border-dashed border-gray-300" />
-            {items.map((item) => (
-              <p key={item.id} className="flex justify-between">
-                <span>{item.name}</span>
-                <span>${item.price}</span>
-              </p>
-            ))}
-            <div className="my-1 border-t border-dashed border-gray-300" />
-            <p className="text-right font-bold">Total: ${total.toFixed(2)}</p>
+        {imagePreview ? (
+          <img src={imagePreview} alt="Uploaded receipt preview" className="h-full w-full object-cover opacity-80" />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center opacity-70">
+            <div className="w-48 rounded bg-white p-4 text-[8px] text-gray-800 shadow-lg">
+              <p className="text-center font-bold">{merchant}</p>
+              <div className="my-2 border-t border-dashed border-gray-300" />
+              {items.map((item) => (
+                <p key={item.id} className="flex justify-between">
+                  <span>{item.name}</span>
+                  <span>${item.price}</span>
+                </p>
+              ))}
+              <div className="my-1 border-t border-dashed border-gray-300" />
+              <p className="text-right font-bold">Total: ${total.toFixed(2)}</p>
+            </div>
           </div>
-        </div>
-        <div className="animate-scan-line bg-nets-primary absolute right-4 left-4 h-0.5" />
+        )}
+        {analyzing && <div className="animate-scan-line bg-nets-primary absolute right-4 left-4 h-0.5" />}
         <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5">
-          <RefreshCw className="size-3 text-white" />
-          <span className="text-xs font-medium text-white">OCR complete</span>
+          <RefreshCw className={`size-3 text-white ${analyzing ? "animate-spin" : ""}`} />
+          <span className="max-w-44 truncate text-xs font-medium text-white">
+            {analyzing ? "Reading receipt…" : imageName ? `OCR ready · ${imageName}` : "Demo receipt ready"}
+          </span>
         </div>
         <div className="absolute right-3 bottom-3 flex gap-2">
           <button
+            type="button"
+            onClick={() => cameraInputRef.current?.click()}
             className="flex size-9 items-center justify-center rounded-full bg-black/40 text-white"
-            aria-label="Flash"
+            aria-label="Take receipt photo"
           >
-            <Zap className="size-4" />
+            <Camera className="size-4" />
           </button>
           <button
+            type="button"
+            onClick={() => galleryInputRef.current?.click()}
             className="flex size-9 items-center justify-center rounded-full bg-black/40 text-white"
-            aria-label="Gallery"
+            aria-label="Upload receipt image"
           >
             <Image className="size-4" />
           </button>
         </div>
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleImage}
+          className="sr-only"
+          aria-label="Take receipt photo"
+        />
+        <input
+          ref={galleryInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImage}
+          className="sr-only"
+          aria-label="Upload receipt image"
+        />
       </div>
 
       <div className="flex flex-col gap-4 px-5 pb-28">
@@ -143,7 +216,13 @@ function OCRReceiptScan() {
           Trip wallet
           <select
             value={tripId}
-            onChange={(event) => setTripId(event.target.value)}
+            onChange={(event) => {
+              const nextTripId = event.target.value;
+              setTripId(nextTripId);
+              const nextMembers = getTripMembers(nextTripId);
+              if (!nextMembers.some((member) => member.id === paidBy)) setPaidBy(nextMembers[0]?.id ?? "you");
+              setError("");
+            }}
             className="border-nets-outline-variant h-11 rounded-xl border bg-white px-3 text-sm"
           >
             {trips.map((trip) => (
@@ -154,7 +233,44 @@ function OCRReceiptScan() {
           </select>
         </label>
 
-        <div className="grid grid-cols-[1fr_150px] gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
+            Payment source
+            <select
+              value={paidFrom}
+              onChange={(event) => {
+                setPaidFrom(event.target.value as "wallet" | "personal");
+                setError("");
+              }}
+              className="border-nets-outline-variant h-11 rounded-xl border bg-white px-3 text-sm"
+            >
+              <option value="wallet">Group wallet</option>
+              <option value="personal">Personal payment</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-semibold">
+            {paidFrom === "wallet" ? "Added by" : "Paid by"}
+            <select
+              value={paidBy}
+              onChange={(event) => setPaidBy(event.target.value)}
+              className="border-nets-outline-variant h-11 rounded-xl border bg-white px-3 text-sm"
+            >
+              {tripMembers.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {paidFrom === "wallet" && (
+          <p className="text-nets-on-surface-variant -mt-2 text-xs font-semibold">
+            Available wallet balance: ${Math.max(walletBalance, 0).toFixed(2)}
+          </p>
+        )}
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_150px]">
           <label className="flex flex-col gap-1.5 text-sm font-semibold">
             Merchant
             <div className="relative">

@@ -122,7 +122,7 @@ export function BottomNav() {
                 <Button
                   onClick={() => {
                     setPendingAction(null);
-                    navigate({ to: "/" });
+                    navigate({ to: "/", hash: "create" });
                   }}
                   className="bg-nets-primary mt-5 rounded-full px-5"
                 >

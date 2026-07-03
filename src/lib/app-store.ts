@@ -23,7 +23,7 @@ import type {
 } from "#/lib/types";
 
 const STORAGE_KEY = "nets-biscuit-demo";
-const STORAGE_VERSION = 2;
+const STORAGE_VERSION = 3;
 
 export type AppState = {
   version: number;
@@ -36,6 +36,7 @@ export type AppState = {
   activities: Activity[];
   contributions: Record<string, Record<string, number>>;
   settledTripIds: string[];
+  refundedTripIds: string[];
   autoContributionByTrip: Record<string, boolean>;
 };
 
@@ -89,6 +90,7 @@ function freshState(): AppState {
     activities: ACTIVITIES,
     contributions: CONTRIBUTIONS,
     settledTripIds: ["bali-2024"],
+    refundedTripIds: ["bali-2024"],
     autoContributionByTrip: {},
   });
 }
@@ -140,6 +142,7 @@ export const appStore = new Store(freshState(), ({ setState }) => ({
           hydrated: true,
           members: saved.members?.length ? saved.members : next.members,
           settledTripIds: saved.settledTripIds ?? next.settledTripIds,
+          refundedTripIds: saved.refundedTripIds ?? [],
           autoContributionByTrip: saved.autoContributionByTrip ?? {},
         };
       } else {
@@ -455,6 +458,29 @@ export const appStore = new Store(freshState(), ({ setState }) => ({
             type: "settlement",
             title: "Trip settled",
             message: `${trip?.name ?? "Your trip"} has been settled with NETS.`,
+            tripId,
+            timestamp: "Just now",
+            read: false,
+          },
+          ...state.notifications,
+        ],
+      };
+    });
+  },
+
+  refundTrip(tripId: string) {
+    commit(setState, (state) => {
+      if (!state.settledTripIds.includes(tripId)) return state;
+      const trip = state.trips.find((entry) => entry.id === tripId);
+      return {
+        ...state,
+        refundedTripIds: Array.from(new Set([...state.refundedTripIds, tripId])),
+        notifications: [
+          {
+            id: makeId("notification"),
+            type: "settlement",
+            title: "Wallet balance refunded",
+            message: `${trip?.name ?? "Your trip"} remaining balance was distributed to contributors.`,
             tripId,
             timestamp: "Just now",
             read: false,

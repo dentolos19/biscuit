@@ -9,7 +9,7 @@ function CreateWalletRedirect() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    void navigate({ to: "/", replace: true });
+    void navigate({ to: "/", hash: "create", replace: true });
   }, [navigate]);
 
   return null;
