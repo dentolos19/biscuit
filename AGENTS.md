@@ -1,3 +1,5 @@
-# NETS Biscuit
+# Agent Instructions
 
-This app has a mobile-first design and uses shadcn/ui components and design language.
+- Preserve the mobile-first design and shadcn/ui design language.
+- Use the `src/` application structure and existing TanStack patterns.
+- Run project commands through the `Justfile` and use Bun for dependencies.

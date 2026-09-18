@@ -1,4 +1,4 @@
-# NETS Biscuit
+# Product Specifications
 
 ## 1. Project Overview
 

@@ -27,11 +27,17 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Setup Just
+        uses: extractions/setup-just@v4
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
       - name: Build Project
-        run: bun run build
+        run: just build
 
-      - name: Deploy to Cloudflare
-        run: bun run deploy
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v4
+        with:
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
