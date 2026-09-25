@@ -3,19 +3,20 @@
   "name": "biscuit",
   "main": "@tanstack/react-start/server-entry",
   "account_id": "d910f54eba4cf3d1634aa41c3d9a93bc",
-  "compatibility_date": "2026-05-01",
-  "compatibility_flags": ["nodejs_compat"],
-  "logpush": true,
+  "compatibility_date": "2026-10-01",
   "observability": {
     "logs": {
-      "enabled": true
+      "enabled": true,
     },
     "traces": {
-      "enabled": true
-    }
+      "enabled": true,
+    },
+    "issues": {
+      "enabled": true,
+    },
   },
   "route": {
     "pattern": "biscuit.dennise.me",
-    "custom_domain": true
-  }
+    "custom_domain": true,
+  },
 }
