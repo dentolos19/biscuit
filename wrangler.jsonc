@@ -8,14 +8,14 @@
   "logpush": true,
   "observability": {
     "logs": {
-      "enabled": true
+      "enabled": true,
     },
     "traces": {
-      "enabled": true
-    }
+      "enabled": true,
+    },
   },
   "route": {
     "pattern": "biscuit.dennise.me",
-    "custom_domain": true
-  }
+    "custom_domain": true,
+  },
 }
