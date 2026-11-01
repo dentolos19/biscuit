@@ -118,12 +118,12 @@ export const EXPENSES: Expense[] = [
     id: "exp-3",
     tripId: "bangkok-2024",
     name: "Lunch at After You",
-    amount: 86.4,
+    amount: 60.82,
     category: "food",
     paidBy: "yu-xiang",
     status: "scanning",
     date: "2024-06-12",
-    hasReceipt: false,
+    hasReceipt: true,
     receiptId: "rec-2",
   },
   {
@@ -170,8 +170,8 @@ export const RECEIPTS: Receipt[] = [
     merchantName: "Grand Palace Hotel",
     date: "2024-06-10",
     subtotal: 450.0,
-    serviceCharge: 31.5,
-    tax: 31.5,
+    serviceCharge: 25.0,
+    tax: 25.0,
     total: 500.0,
     items: [
       {
@@ -190,10 +190,10 @@ export const RECEIPTS: Receipt[] = [
     tripId: "bangkok-2024",
     merchantName: "After You Dessert Cafe",
     date: "2024-06-12",
-    subtotal: 68.0,
+    subtotal: 51.3,
     serviceCharge: 4.76,
     tax: 4.76,
-    total: 86.4,
+    total: 60.82,
     items: [
       {
         id: "item-2",
@@ -221,9 +221,9 @@ export const RECEIPTS: Receipt[] = [
     tripId: "bangkok-2024",
     merchantName: "Grand Palace Ticket Office",
     date: "2024-06-11",
-    subtotal: 30.0,
+    subtotal: 32.0,
     serviceCharge: 0,
-    tax: 2.0,
+    tax: 0,
     total: 32.0,
     items: [
       {

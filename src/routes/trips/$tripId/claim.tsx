@@ -44,7 +44,7 @@ function ItemClaiming() {
 
   const claimedCount = receipt.items.filter((item) => item.claimedBy.length > 0).length;
   const progress = Math.round((claimedCount / Math.max(receipt.items.length, 1)) * 100);
-  const canLock = claimedCount === receipt.items.length;
+  const canLock = !receipt.locked && claimedCount === receipt.items.length;
   const selectedMember = members.find((member) => member.id === selectedMemberId);
 
   const handleLock = () => {
@@ -66,14 +66,18 @@ function ItemClaiming() {
       <div className="px-5 pb-28">
         <div className="mb-4">
           <h2 className="text-nets-on-surface text-2xl font-extrabold">Who had what?</h2>
-          <p className="text-nets-on-surface-variant text-sm">Choose a friend, then tap each item they shared.</p>
+          <p className="text-nets-on-surface-variant text-sm">
+            {receipt.locked ? "This split is locked." : "Choose a friend, then tap each item they shared."}
+          </p>
         </div>
 
         <div className="shadow-ambient-soft mb-4 rounded-2xl bg-white p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-nets-on-surface text-sm font-semibold">
-                {canLock ? "Every item is claimed" : `${receipt.items.length - claimedCount} items still need a claim`}
+                {claimedCount === receipt.items.length
+                  ? "Every item is claimed"
+                  : `${receipt.items.length - claimedCount} items still need a claim`}
               </p>
               <p className="text-nets-on-surface-variant text-xs">Taxes and service are allocated proportionally.</p>
             </div>
@@ -109,6 +113,7 @@ function ItemClaiming() {
               <button
                 key={item.id}
                 onClick={() => claimItem(receipt.id, item.id, selectedMemberId)}
+                disabled={receipt.locked}
                 className={`shadow-ambient-soft rounded-2xl bg-white p-4 text-left transition-all ${
                   selectedClaim ? "ring-nets-secondary ring-2" : ""
                 }`}
@@ -176,9 +181,11 @@ function ItemClaiming() {
             className="bg-nets-primary h-14 w-full rounded-full text-base font-bold"
           >
             <Lock data-icon="inline-start" />
-            {canLock
-              ? "Lock split"
-              : `Claim ${receipt.items.length - claimedCount} more item${receipt.items.length - claimedCount === 1 ? "" : "s"}`}
+            {receipt.locked
+              ? "Split locked"
+              : canLock
+                ? "Lock split"
+                : `Claim ${receipt.items.length - claimedCount} more item${receipt.items.length - claimedCount === 1 ? "" : "s"}`}
           </Button>
         </div>
       </div>

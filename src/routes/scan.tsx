@@ -6,6 +6,7 @@ import type { ChangeEvent } from "react";
 import { useApp } from "#/components/demo-data-provider";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
+import { prepareReceiptDraft } from "#/lib/finance";
 
 export const Route = createFileRoute("/scan")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -28,7 +29,7 @@ function OCRReceiptScan() {
   const search = Route.useSearch();
   const { trips, expenses, contributions, getTripMembers, addReceipt } = useApp();
   const fallbackTrip = trips.find((trip) => trip.status === "active") ?? trips[0];
-  const [tripId, setTripId] = useState(search.tripId ?? fallbackTrip?.id ?? "");
+  const [tripId, setTripId] = useState(trips.find((trip) => trip.id === search.tripId)?.id ?? fallbackTrip?.id ?? "");
   const [merchant, setMerchant] = useState("After You Dessert Cafe");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [items, setItems] = useState(initialItems);
@@ -43,13 +44,8 @@ function OCRReceiptScan() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);
 
-  const total = useMemo(
-    () =>
-      items.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0) +
-      (Number(serviceCharge) || 0) +
-      (Number(tax) || 0),
-    [items, serviceCharge, tax],
-  );
+  const draft = useMemo(() => prepareReceiptDraft(items, serviceCharge, tax), [items, serviceCharge, tax]);
+  const { total } = draft;
   const tripMembers = getTripMembers(tripId);
   const walletSpent = expenses
     .filter((expense) => expense.tripId === tripId && (expense.paidFrom ?? "wallet") === "wallet")
@@ -80,11 +76,20 @@ function OCRReceiptScan() {
   };
 
   const handleConfirm = () => {
-    const validItems = items
-      .map((item) => ({ name: item.name.trim(), price: Number(item.price), quantity: item.quantity }))
-      .filter((item) => item.name && Number.isFinite(item.price) && item.price > 0);
-    if (!tripId || !merchant.trim() || validItems.length === 0) {
+    if (!tripId || !merchant.trim() || draft.items.length === 0) {
       setError("Choose a trip and keep at least one valid receipt item.");
+      return;
+    }
+    if (draft.items.length !== items.length) {
+      setError("Enter a name and positive price for every item, or remove it.");
+      return;
+    }
+    if (!draft.validFees) {
+      setError("Enter valid, non-negative service and tax amounts.");
+      return;
+    }
+    if (!Number.isFinite(total)) {
+      setError("The receipt total is too large.");
       return;
     }
     if (paidFrom === "wallet" && total > walletBalance) {
@@ -97,9 +102,9 @@ function OCRReceiptScan() {
       tripId,
       merchantName: merchant.trim(),
       date,
-      items: validItems,
-      serviceCharge: Number(serviceCharge) || 0,
-      tax: Number(tax) || 0,
+      items: draft.items,
+      serviceCharge: draft.serviceCharge,
+      tax: draft.tax,
       paidBy,
       paidFrom,
     });
