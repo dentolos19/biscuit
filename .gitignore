@@ -4,6 +4,7 @@
 *.iml
 
 # Environment files
+.cloudflare/
 .tanstack/
 .wrangler/
 node_modules/

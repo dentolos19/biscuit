@@ -222,7 +222,8 @@ export const appStore = new Store(freshState(), ({ setState }) => ({
     commit(setState, (state) => {
       const receipt = state.receipts.find((entry) => entry.id === receiptId);
       const item = receipt?.items.find((entry) => entry.id === itemId);
-      const wasClaimed = item?.claimedBy.includes(memberId) ?? false;
+      if (!receipt || receipt.locked || !item) return state;
+      const wasClaimed = item.claimedBy.includes(memberId);
       return {
         ...state,
         receipts: state.receipts.map((entry) =>
@@ -263,7 +264,7 @@ export const appStore = new Store(freshState(), ({ setState }) => ({
   lockReceipt(receiptId: string) {
     commit(setState, (state) => {
       const receipt = state.receipts.find((entry) => entry.id === receiptId);
-      if (!receipt || receipt.items.some((item) => item.claimedBy.length === 0)) return state;
+      if (!receipt || receipt.locked || receipt.items.some((item) => item.claimedBy.length === 0)) return state;
       return {
         ...state,
         receipts: state.receipts.map((entry) => (entry.id === receiptId ? { ...entry, locked: true } : entry)),

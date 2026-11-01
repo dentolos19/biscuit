@@ -1,5 +1,22 @@
 import type { Expense, Member, Receipt, ReceiptItem, Settlement, SplitEntry } from "#/lib/types";
 
+export function prepareReceiptDraft(
+  items: { name: string; price: string; quantity: number }[],
+  serviceCharge: string,
+  tax: string,
+) {
+  const validItems = items
+    .map((item) => ({ name: item.name.trim(), price: Number(item.price), quantity: item.quantity }))
+    .filter((item) => item.name && Number.isFinite(item.price) && item.price > 0);
+  const serviceChargeAmount = Number(serviceCharge);
+  const taxAmount = Number(tax);
+  const validFees = [serviceChargeAmount, taxAmount].every((fee) => Number.isFinite(fee) && fee >= 0);
+  const total =
+    validItems.reduce((sum, item) => sum + item.price * item.quantity, 0) +
+    (validFees ? serviceChargeAmount + taxAmount : 0);
+  return { items: validItems, serviceCharge: serviceChargeAmount, tax: taxAmount, total, validFees };
+}
+
 export function totalContributed(contributions: Record<string, number>): number {
   return Object.values(contributions).reduce((sum, value) => sum + value, 0);
 }
